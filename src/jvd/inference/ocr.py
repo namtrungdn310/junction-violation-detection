@@ -15,9 +15,7 @@ import logging
 import multiprocessing as mp
 import queue
 import re
-from typing import Dict, Optional
 
-import cv2
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -34,7 +32,7 @@ class LicensePlateRecognizer:
     Uses a Queue to ingest image crops and a Manager.dict to store results.
     """
 
-    def __init__(self, shared_dict: Dict[int, str]) -> None:
+    def __init__(self, shared_dict: dict[int, str]) -> None:
         self._shared_dict = shared_dict
         self._queue: mp.Queue = mp.Queue(maxsize=100)
         self._stop_event = mp.Event()
@@ -68,8 +66,21 @@ class LicensePlateRecognizer:
             pass  # Drop frame to maintain real-time throughput
 
     @staticmethod
-    def _run(q: mp.Queue, results: Dict[int, str], stop_event: mp.Event) -> None:
+    def _run(q: mp.Queue, results: dict[int, str], stop_event: mp.Event) -> None:
         """The entry point for the child process."""
+        import os
+        os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+        # ── Windows DLL Hell Prevention ───────────────────────────────────────
+        # PaddleOCR internally imports torch AFTER importing paddle. This causes
+        # PyTorch to load its shm.dll using Paddle's older loaded OpenMP DLL,
+        # resulting in WinError 127. By importing torch FIRST, we load the newer
+        # PyTorch OpenMP DLL into memory, which Paddle can safely reuse.
+        try:
+            import torch  # noqa: F401
+        except ImportError:
+            pass
+
         try:
             from paddleocr import PaddleOCR
         except Exception as exc:  # pragma: no cover
@@ -78,10 +89,7 @@ class LicensePlateRecognizer:
 
         # Force CPU to isolate VRAM for YOLO26.
         try:
-            try:
-                ocr = PaddleOCR(use_angle_cls=False, lang="en", use_gpu=False, show_log=False)
-            except TypeError:
-                ocr = PaddleOCR(lang="en", device="cpu")
+            ocr = PaddleOCR(use_angle_cls=False, lang="en")
         except Exception as exc:  # pragma: no cover
             logger.error(f"PaddleOCR initialization failed, OCR worker disabled: {exc}")
             return
@@ -101,15 +109,15 @@ class LicensePlateRecognizer:
                 results[track_id] = text
 
     @staticmethod
-    def _process_crop(ocr, crop: np.ndarray, track_id: int) -> Optional[str]:
+    def _process_crop(ocr, crop: np.ndarray, track_id: int) -> str | None:
         """
         Pre-process the image, apply aspect ratio slicing, and run OCR.
         """
         h, w = crop.shape[:2]
         if h == 0 or w == 0:
             return None
-            
-        ratio = w / h
+
+        w / h
 
         # Run OCR on the full original color crop
         text = LicensePlateRecognizer._read_text(ocr, crop)
@@ -117,7 +125,7 @@ class LicensePlateRecognizer:
         # Regex Syntax Validation
         # Remove spaces and dots that OCR might wrongly infer
         cleaned = text.replace(" ", "").replace(".", "").replace("-", "").upper()
-        
+
         # Vietnamese plate format: 2 digits (province) + (1 letter + 1 digit OR 1-2 letters) + digits
         # Example: 43F161888 -> 43F1-61888, 92CA13144 -> 92CA-13144
         # Logic: Prioritize Letter+Digit series (F1, G1) over 2-letter series (CA, AA). 4-5 digits at end.
@@ -125,7 +133,7 @@ class LicensePlateRecognizer:
         if match:
             formatted = f"{match.group(1)}-{match.group(2)}"
             return formatted
-            
+
         return None
 
     @staticmethod
@@ -140,5 +148,5 @@ class LicensePlateRecognizer:
             # line structure: [[[x,y], [x,y], [x,y], [x,y]], ('text', conf)]
             if line and len(line) == 2 and isinstance(line[1], tuple):
                 texts.append(line[1][0])
-                
+
         return "".join(texts)

@@ -12,7 +12,6 @@ from __future__ import annotations
 import logging
 from collections import deque
 from pathlib import Path
-from typing import Dict, Deque, List, Optional, Set, Tuple
 
 from jvd.core.datamodels import BoundingBox, DetectionEvent, VehicleClass
 
@@ -34,7 +33,7 @@ _BYTETRACK_CFG = Path(__file__).parent.parent.parent.parent / "configs" / "custo
 
 class ByteTrackSession:
     """Wraps an ``ObjectDetector`` to run YOLO26 + ByteTrack frame-by-frame.
-    
+
     ``persist=True`` instructs ultralytics to keep a stateful ``BYTETracker``
     instance across calls so the Kalman filter accumulates velocity estimates.
     """
@@ -65,7 +64,7 @@ class ByteTrackSession:
         frame,
         frame_id: int = 0,
         timestamp: float = 0.0,
-    ) -> List[DetectionEvent]:
+    ) -> list[DetectionEvent]:
         """Run YOLO26 + ByteTrack on one BGR frame with stateful persistence.
 
         Args:
@@ -97,14 +96,14 @@ class ByteTrackSession:
         results: list,
         frame_id: int,
         timestamp: float,
-    ) -> List[DetectionEvent]:
+    ) -> list[DetectionEvent]:
         """Extract ``DetectionEvent`` list from raw YOLO tracker results.
 
         ByteTrack adds a ``boxes.id`` tensor to results when ``persist=True``.
         If ``boxes.id`` is None (first frame or no match), ``track_id`` is set
         to None and the caller may discard or buffer the event.
         """
-        events: List[DetectionEvent] = []
+        events: list[DetectionEvent] = []
         if not results or results[0].boxes is None:
             return events
 
@@ -149,32 +148,32 @@ class VehicleTrackerManager:
         self._history_len      = history_len
         self._max_stale_frames = max_stale_frames
         # track_id → deque of (cx, cy) centre coordinates
-        self._histories: Dict[int, Deque[Tuple[float, float]]] = {}
+        self._histories: dict[int, deque[tuple[float, float]]] = {}
         # track_id → last frame_id it was seen on
-        self._last_seen: Dict[int, int] = {}
+        self._last_seen: dict[int, int] = {}
         # track_id → smoothed BoundingBox
-        self._last_boxes: Dict[int, BoundingBox] = {}
+        self._last_boxes: dict[int, BoundingBox] = {}
 
     # ── Update ────────────────────────────────────────────────────────────────
 
-    def update(self, events: List[DetectionEvent], frame_id: int) -> List[DetectionEvent]:
+    def update(self, events: list[DetectionEvent], frame_id: int) -> list[DetectionEvent]:
         """Ingest tracking events, apply Box Smoothing, and return smoothed events."""
         from dataclasses import replace
-        smoothed_events: List[DetectionEvent] = []
+        smoothed_events: list[DetectionEvent] = []
 
         for ev in events:
             if ev.track_id is None:
                 smoothed_events.append(ev)
                 continue
-            
+
             tid = ev.track_id
             current_bbox = ev.bbox
-            
+
             # 1. Bounding Box Smoothing (EWA)
             if tid in self._last_boxes:
                 prev = self._last_boxes[tid]
                 alpha = _SMOOTHING_ALPHA
-                
+
                 # Smooth each coordinate
                 smoothed_bbox = BoundingBox(
                     x1 = alpha * current_bbox.x1 + (1 - alpha) * prev.x1,
@@ -184,7 +183,7 @@ class VehicleTrackerManager:
                 )
                 # Create a new event with the smoothed box
                 ev = replace(ev, bbox=smoothed_bbox)
-            
+
             self._last_boxes[tid] = ev.bbox
             smoothed_events.append(ev)
 
@@ -194,12 +193,12 @@ class VehicleTrackerManager:
             cx, cy = ev.bbox.center
             self._histories[tid].append((cx, cy))
             self._last_seen[tid] = frame_id
-        
+
         return smoothed_events
 
     # ── Queries ───────────────────────────────────────────────────────────────
 
-    def get_history(self, track_id: int) -> List[Tuple[float, float]]:
+    def get_history(self, track_id: int) -> list[tuple[float, float]]:
         """Return the ordered list of (cx, cy) centres for a track.
 
         The list is ordered oldest-to-newest and has at most
@@ -207,7 +206,7 @@ class VehicleTrackerManager:
         """
         return list(self._histories.get(track_id, []))
 
-    def get_velocity(self, track_id: int) -> Optional[Tuple[float, float]]:
+    def get_velocity(self, track_id: int) -> tuple[float, float] | None:
         """Estimate instantaneous velocity (vx, vy) in pixels/frame.
 
         Returns:
@@ -245,7 +244,7 @@ class VehicleTrackerManager:
         return len(stale)
 
     @property
-    def active_track_ids(self) -> Set[int]:
+    def active_track_ids(self) -> set[int]:
         """Set of currently tracked vehicle IDs."""
         return set(self._histories.keys())
 

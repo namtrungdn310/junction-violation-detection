@@ -10,9 +10,7 @@ then fallback to ONNX. Maintains VRAM cache with periodic flushes.
 from __future__ import annotations
 
 import logging
-import time
 from pathlib import Path
-from typing import List, Optional
 
 import torch
 
@@ -26,7 +24,6 @@ from jvd.core.exceptions import PipelineConfigError
 from jvd.inference.compiler import (
     InferenceFormat,
     compile_to_tensorrt,
-    export_to_onnx,
 )
 
 logger = logging.getLogger(__name__)
@@ -92,22 +89,30 @@ class ObjectDetector:
         else:
             logger.info("CPU device detected; skipping TensorRT and using ONNX fallback.")
 
-        # ── Attempt 4: PyTorch Fallback (CPU-only) ─────────────────────────────
-        if self._device.type == "cpu":
-            try:
-                logger.info(f"Using PyTorch CPU fallback for model: {self._model_path}")
-                self._model = YOLO(str(self._model_path), task="detect")
-                self._format = InferenceFormat.PYTORCH
-                logger.info("Backend: PyTorch (CPU FP32)")
-                return
-            except Exception as pt_err:
-                logger.error(f"PyTorch fallback failed: {pt_err}")
+        # ── Attempt 3: PyTorch native (.pt) ──────────────────────────────────────
+        try:
+            logger.info(f"Loading PyTorch model: {self._model_path}")
+            self._model = YOLO(str(self._model_path), task="detect")
+
+            # Verify CUDA kernel availability with a dummy inference
+            import numpy as np
+            dummy = np.zeros((self._imgsz, self._imgsz, 3), dtype=np.uint8)
+            self._model.predict(source=dummy, imgsz=self._imgsz, device=self._device, verbose=False)
+
+            self._format = InferenceFormat.PYTORCH
+            logger.info(f"Backend: PyTorch ({self._device.type.upper()} FP32)")
+            return
+        except Exception as pt_err:
+            logger.error(f"PyTorch load failed on {self._device}: {pt_err}")
 
         # ── No viable backend ─────────────────────────────────────────────────
         raise PipelineConfigError(
-            f"Cannot load model '{self._model_path}' via TensorRT, ONNX or PyTorch. "
-            "Check your environment and model path."
+            f"Cannot load model '{self._model_path}' on device '{self._device}'. "
+            f"If using GPU, ensure PyTorch supports your GPU architecture "
+            f"(run: python -c \"import torch; print(torch.cuda.get_arch_list())\"). "
+            f"Check https://pytorch.org/get-started/locally/ for compatible versions."
         )
+
 
     # ── Inference ─────────────────────────────────────────────────────────────
 
@@ -116,7 +121,7 @@ class ObjectDetector:
         frame,
         frame_id: int = 0,
         timestamp: float = 0.0,
-    ) -> List[DetectionEvent]:
+    ) -> list[DetectionEvent]:
         """Run YOLO26 NMS-Free inference on one BGR frame.
 
         Flushes the CUDA allocator cache every ``_CACHE_FLUSH_INTERVAL`` frames
@@ -165,13 +170,13 @@ class ObjectDetector:
         results: list,
         frame_id: int,
         timestamp: float,
-    ) -> List[DetectionEvent]:
+    ) -> list[DetectionEvent]:
         """Convert raw YOLO output tensors → ``DetectionEvent`` list.
 
         YOLO26 is NMS-Free (End-to-End), so no duplicate suppression is needed.
         Malformed boxes are logged and skipped rather than crashing the pipeline.
         """
-        events: List[DetectionEvent] = []
+        events: list[DetectionEvent] = []
         if not results or results[0].boxes is None:
             return events
 
@@ -182,7 +187,7 @@ class ObjectDetector:
                 conf     = float(boxes.conf[i])
                 coco_id  = int(boxes.cls[i])
                 vehicle  = VehicleClass.from_coco_id(coco_id)
-                
+
                 # --- Advanced Filtering: Anti-Human BBox Logic ---
                 # A vertical box (height >> width) is likely a person, not a vehicle.
                 w_box = x2 - x1
@@ -216,7 +221,7 @@ class ObjectDetector:
     def raw_model(self): return self._model
 
     @property
-    def device(self) -> "torch.device": return self._device
+    def device(self) -> torch.device: return self._device
 
     @property
     def conf(self) -> float: return self._conf

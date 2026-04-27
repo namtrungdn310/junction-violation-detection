@@ -186,3 +186,567 @@
 2026-04-28 01:08:35,238 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
 2026-04-28 01:08:45,984 - jvd.pipeline.engine - INFO - Cleaning up resources...
 2026-04-28 01:08:46,394 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:22:18,586 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:23:03,186 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:23:03,187 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:23:03,187 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:23:03,187 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:23:03,468 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1.
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:23:36,226 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:23:36,227 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:23:36,227 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:23:36,228 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:23:36,496 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1.
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:23:36,498 - jvd.inference.detector - INFO - Using PyTorch fallback for model: models\yolo26n.pt
+2026-04-28 01:23:36,524 - jvd.inference.detector - INFO - Backend: PyTorch (CUDA FP32)
+2026-04-28 01:23:36,524 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:23:36,686 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:23:36,689 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:23:36,695 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:23:36,695 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 01:23:36,872 - jvd.inference.ocr - ERROR - PaddleOCR unavailable. OCR worker disabled: No module named 'paddle'
+2026-04-28 01:23:43,804 - jvd.pipeline.engine - ERROR - Pipeline crashed: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1.
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+Traceback (most recent call last):
+  File "E:\NCKH\junction-violation-detection\src\jvd\pipeline\engine.py", line 146, in run
+    events = self.tracker_session.track(frame, frame_id, timestamp)
+  File "E:\NCKH\junction-violation-detection\src\jvd\inference\tracker.py", line 80, in track
+    results = model.track(
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 580, in track
+    return self.predict(source=source, stream=stream, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 537, in predict
+    return self.predictor.predict_cli(source=source) if is_cli else self.predictor(source=source, stream=stream)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 226, in __call__
+    return list(self.stream_inference(source, model, *args, **kwargs))  # merge list of Results into one
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\utils\_contextlib.py", line 35, in generator_context
+    response = gen.send(None)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 308, in stream_inference
+    self.model.warmup(
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\autobackend.py", line 307, in warmup
+    self.forward(im)  # warmup model
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\autobackend.py", line 273, in forward
+    y = self.backend.forward(im, **forward_kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\pytorch.py", line 90, in forward
+    return self.model(im, augment=augment, visualize=visualize, embed=embed, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\tasks.py", line 142, in forward
+    return self.predict(x, *args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\tasks.py", line 159, in predict
+    return self._predict_once(x, profile, visualize, embed)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\tasks.py", line 181, in _predict_once
+    x = m(x)  # run
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\modules\conv.py", line 89, in forward_fuse
+    return self.act(self.conv(x))
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\conv.py", line 460, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\conv.py", line 456, in _conv_forward
+    return F.conv2d(input, weight, bias, self.stride,
+RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1.
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+2026-04-28 01:23:43,808 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 01:23:43,817 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:27:14,503 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:27:14,503 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:27:14,503 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:27:14,503 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:27:14,609 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:27:14,611 - jvd.inference.detector - INFO - Using PyTorch fallback for model: models\yolo26n.pt
+2026-04-28 01:27:14,635 - jvd.inference.detector - INFO - Backend: PyTorch (CUDA FP32)
+2026-04-28 01:27:14,635 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:27:14,793 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:27:14,797 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:27:14,800 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:27:14,801 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 01:27:15,004 - jvd.inference.ocr - ERROR - PaddleOCR unavailable. OCR worker disabled: No module named 'paddle'
+2026-04-28 01:27:22,249 - jvd.pipeline.engine - ERROR - Pipeline crashed: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+Traceback (most recent call last):
+  File "E:\NCKH\junction-violation-detection\src\jvd\pipeline\engine.py", line 146, in run
+    events = self.tracker_session.track(frame, frame_id, timestamp)
+  File "E:\NCKH\junction-violation-detection\src\jvd\inference\tracker.py", line 80, in track
+    results = model.track(
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 580, in track
+    return self.predict(source=source, stream=stream, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 537, in predict
+    return self.predictor.predict_cli(source=source) if is_cli else self.predictor(source=source, stream=stream)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 226, in __call__
+    return list(self.stream_inference(source, model, *args, **kwargs))  # merge list of Results into one
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\utils\_contextlib.py", line 36, in generator_context
+    response = gen.send(None)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 308, in stream_inference
+    self.model.warmup(
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\autobackend.py", line 307, in warmup
+    self.forward(im)  # warmup model
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\autobackend.py", line 273, in forward
+    y = self.backend.forward(im, **forward_kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\pytorch.py", line 90, in forward
+    return self.model(im, augment=augment, visualize=visualize, embed=embed, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\tasks.py", line 142, in forward
+    return self.predict(x, *args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\tasks.py", line 159, in predict
+    return self._predict_once(x, profile, visualize, embed)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\tasks.py", line 181, in _predict_once
+    x = m(x)  # run
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\modules\conv.py", line 89, in forward_fuse
+    return self.act(self.conv(x))
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\conv.py", line 554, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\conv.py", line 549, in _conv_forward
+    return F.conv2d(
+RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+2026-04-28 01:27:22,251 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 01:27:22,260 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:28:31,682 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:28:31,682 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:28:31,682 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:28:31,683 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:28:31,823 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:28:31,824 - jvd.inference.detector - INFO - Using PyTorch fallback for model: models\yolo26n.pt
+2026-04-28 01:28:31,944 - jvd.inference.detector - ERROR - PyTorch GPU initialization failed (RuntimeError). Falling back to CPU...
+2026-04-28 01:28:32,072 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 01:28:32,072 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:28:32,228 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:28:32,231 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:28:32,235 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:28:32,235 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 01:28:32,399 - jvd.inference.ocr - ERROR - PaddleOCR unavailable. OCR worker disabled: No module named 'paddle'
+2026-04-28 01:28:42,721 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 01:29:18,082 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 01:29:27,844 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 01:29:27,863 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:31:24,918 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:31:24,919 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:31:24,919 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:31:24,919 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:31:25,057 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:31:25,059 - jvd.inference.detector - INFO - Using PyTorch fallback for model: models\yolo26n.pt
+2026-04-28 01:31:25,157 - jvd.inference.detector - ERROR - PyTorch GPU initialization failed (RuntimeError). Falling back to CPU...
+2026-04-28 01:31:25,289 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 01:31:25,289 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:31:25,457 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:31:25,463 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:31:25,471 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:31:25,472 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 01:31:28,486 - jvd.inference.ocr - ERROR - PaddleOCR unavailable. OCR worker disabled: [WinError 127] The specified procedure could not be found. Error loading "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\lib\shm.dll" or one of its dependencies.
+2026-04-28 01:31:36,256 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 01:32:12,425 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 01:32:22,668 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 01:32:22,679 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:33:42,754 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:33:42,754 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:33:42,754 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:33:42,755 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:33:42,896 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:33:42,898 - jvd.inference.detector - INFO - Using PyTorch fallback for model: models\yolo26n.pt
+2026-04-28 01:33:42,994 - jvd.inference.detector - ERROR - PyTorch GPU initialization failed (RuntimeError). Falling back to CPU...
+2026-04-28 01:33:43,130 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 01:33:43,131 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:33:43,287 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:33:43,291 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:33:43,297 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:33:43,297 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 01:33:45,173 - jvd.inference.ocr - ERROR - PaddleOCR unavailable. OCR worker disabled: [WinError 127] The specified procedure could not be found. Error loading "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\lib\shm.dll" or one of its dependencies.
+2026-04-28 01:33:53,892 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 01:34:29,893 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 01:34:38,424 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:34:38,424 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:34:38,424 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:34:38,425 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:34:38,642 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:34:38,644 - jvd.inference.detector - INFO - Using PyTorch fallback for model: models\yolo26n.pt
+2026-04-28 01:34:38,780 - jvd.inference.detector - ERROR - PyTorch GPU initialization failed (RuntimeError). Falling back to CPU...
+2026-04-28 01:34:38,954 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 01:34:38,955 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:34:39,147 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:34:39,152 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:34:39,160 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:34:39,162 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 01:34:40,724 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 01:34:40,741 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:34:41,437 - jvd.inference.ocr - ERROR - PaddleOCR unavailable. OCR worker disabled: [WinError 127] The specified procedure could not be found. Error loading "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\lib\shm.dll" or one of its dependencies.
+2026-04-28 01:34:50,392 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 01:35:33,551 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 01:35:44,948 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 01:35:44,960 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:36:28,469 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:36:28,470 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:36:28,470 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:36:28,470 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:36:28,602 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:36:28,604 - jvd.inference.detector - INFO - Using PyTorch fallback for model: models\yolo26n.pt
+2026-04-28 01:36:28,701 - jvd.inference.detector - ERROR - PyTorch GPU initialization failed (RuntimeError). Falling back to CPU...
+2026-04-28 01:36:28,832 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 01:36:28,832 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:36:28,982 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:36:28,985 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:36:28,991 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:36:28,992 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 01:36:30,680 - jvd.inference.ocr - ERROR - PaddleOCR unavailable. OCR worker disabled: [WinError 127] The specified procedure could not be found. Error loading "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\lib\shm.dll" or one of its dependencies.
+2026-04-28 01:36:39,406 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 01:37:17,469 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 01:37:27,435 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 01:37:27,449 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:37:44,931 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:37:44,933 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:37:44,933 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:37:44,933 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:37:45,068 - jvd.inference.detector - WARNING - TensorRT load/compile failed (RuntimeError: CUDA error: no kernel image is available for execution on the device
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+). Attempting ONNX fallback …
+2026-04-28 01:37:45,070 - jvd.inference.detector - INFO - Using PyTorch fallback for model: models\yolo26n.pt
+2026-04-28 01:37:45,170 - jvd.inference.detector - ERROR - PyTorch GPU initialization failed (RuntimeError). Falling back to CPU...
+2026-04-28 01:37:45,303 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 01:37:45,303 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:37:45,457 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:37:45,461 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:37:45,468 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:37:45,468 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 01:37:56,124 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 01:38:32,539 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 01:38:42,391 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 01:38:43,265 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 01:54:10,156 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:54:10,157 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:54:10,157 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:54:10,157 - jvd.inference.compiler - INFO - Compiling yolo26n.pt → TensorRT engine (FP16, imgsz=1024, workspace=2 GB) …
+2026-04-28 01:54:55,058 - jvd.inference.compiler - INFO - TensorRT engine ready: models\yolo26n.engine
+2026-04-28 01:54:55,060 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 01:54:55,060 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 01:54:55,060 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:54:55,213 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:54:55,253 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:54:55,260 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:54:55,261 - jvd.pipeline.engine - ERROR - cv2.imshow is unavailable because OpenCV was built without HighGUI. Reinstall GUI build with: uv pip install --python .venv\Scripts\python.exe --force-reinstall opencv-contrib-python==4.10.0.84
+2026-04-28 01:55:36,215 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 01:55:36,216 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 01:55:36,216 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 01:55:36,216 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 01:55:36,218 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 01:55:36,218 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 01:55:36,360 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 01:55:36,409 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 01:55:36,415 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 01:55:36,415 - jvd.pipeline.engine - ERROR - cv2.imshow is unavailable because OpenCV was built without HighGUI. Reinstall GUI build with: uv pip install --python .venv\Scripts\python.exe --force-reinstall opencv-contrib-python==4.10.0.84
+2026-04-28 02:00:51,627 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:00:51,627 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:00:51,627 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:00:51,627 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:00:51,667 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:00:51,667 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:00:51,818 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:00:51,849 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 02:00:51,853 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:00:51,853 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:00:56,001 - jvd.pipeline.engine - ERROR - Pipeline crashed: Could not run 'torchvision::nms' with arguments from the 'CUDA' backend. This could be because the operator doesn't exist for this backend, or was omitted during the selective/custom build process (if using custom build). If you are a Facebook employee using PyTorch on mobile, please visit https://fburl.com/ptmfixes for possible resolutions. 'torchvision::nms' is only available for these backends: [CPU, Meta, QuantizedCPU, BackendSelect, Python, FuncTorchDynamicLayerBackMode, Functionalize, Named, Conjugate, Negative, ZeroTensor, ADInplaceOrView, AutogradOther, AutogradCPU, AutogradCUDA, AutogradXLA, AutogradMPS, AutogradXPU, AutogradHPU, AutogradLazy, AutogradMTIA, AutogradMAIA, AutogradPrivateUse1, AutogradMeta, Tracer, AutocastCPU, AutocastMTIA, AutocastMAIA, AutocastXPU, AutocastMPS, AutocastCUDA, FuncTorchBatched, BatchedNestedTensor, FuncTorchVmapMode, Batched, VmapMode, FuncTorchGradWrapper, PythonTLSSnapshot, FuncTorchDynamicLayerFrontMode, PreDispatch, PythonDispatcher].
+
+CPU: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\cpu\nms_kernel.cpp:116 [kernel]
+Meta: registered at E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\library.py:1083 [kernel]
+QuantizedCPU: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\quantized\cpu\qnms_kernel.cpp:128 [kernel]
+BackendSelect: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\BackendSelectFallbackKernel.cpp:3 [backend fallback]
+Python: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\PythonFallbackKernel.cpp:198 [backend fallback]
+FuncTorchDynamicLayerBackMode: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\DynamicLayer.cpp:477 [backend fallback]
+Functionalize: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\FunctionalizeFallbackKernel.cpp:384 [backend fallback]
+Named: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\NamedRegistrations.cpp:5 [backend fallback]
+Conjugate: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\ConjugateFallback.cpp:17 [backend fallback]
+Negative: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\native\NegateFallback.cpp:18 [backend fallback]
+ZeroTensor: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\ZeroTensorFallback.cpp:115 [backend fallback]
+ADInplaceOrView: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:103 [backend fallback]
+AutogradOther: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:62 [backend fallback]
+AutogradCPU: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:66 [backend fallback]
+AutogradCUDA: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:74 [backend fallback]
+AutogradXLA: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:86 [backend fallback]
+AutogradMPS: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:94 [backend fallback]
+AutogradXPU: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:70 [backend fallback]
+AutogradHPU: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:107 [backend fallback]
+AutogradLazy: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:90 [backend fallback]
+AutogradMTIA: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:78 [backend fallback]
+AutogradMAIA: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:82 [backend fallback]
+AutogradPrivateUse1: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:111 [backend fallback]
+AutogradMeta: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:98 [backend fallback]
+Tracer: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\autograd\TraceTypeManual.cpp:296 [backend fallback]
+AutocastCPU: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\autocast\nms_kernel.cpp:34 [kernel]
+AutocastMTIA: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\autocast_mode.cpp:480 [backend fallback]
+AutocastMAIA: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\autocast_mode.cpp:518 [backend fallback]
+AutocastXPU: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\autocast\nms_kernel.cpp:41 [kernel]
+AutocastMPS: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\autocast_mode.cpp:221 [backend fallback]
+AutocastCUDA: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\autocast\nms_kernel.cpp:27 [kernel]
+FuncTorchBatched: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\LegacyBatchingRegistrations.cpp:727 [backend fallback]
+BatchedNestedTensor: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\LegacyBatchingRegistrations.cpp:754 [backend fallback]
+FuncTorchVmapMode: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\VmapModeRegistrations.cpp:22 [backend fallback]
+Batched: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\LegacyBatchingRegistrations.cpp:1072 [backend fallback]
+VmapMode: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\VmapModeRegistrations.cpp:32 [backend fallback]
+FuncTorchGradWrapper: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\TensorWrapper.cpp:210 [backend fallback]
+PythonTLSSnapshot: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\PythonFallbackKernel.cpp:206 [backend fallback]
+FuncTorchDynamicLayerFrontMode: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\DynamicLayer.cpp:473 [backend fallback]
+PreDispatch: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\PythonFallbackKernel.cpp:210 [backend fallback]
+PythonDispatcher: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\PythonFallbackKernel.cpp:202 [backend fallback]
+Traceback (most recent call last):
+  File "E:\NCKH\junction-violation-detection\src\jvd\pipeline\engine.py", line 146, in run
+    events = self.tracker_session.track(frame, frame_id, timestamp)
+  File "E:\NCKH\junction-violation-detection\src\jvd\inference\tracker.py", line 80, in track
+    results = model.track(
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 580, in track
+    return self.predict(source=source, stream=stream, **kwargs)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 537, in predict
+    return self.predictor.predict_cli(source=source) if is_cli else self.predictor(source=source, stream=stream)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 226, in __call__
+    return list(self.stream_inference(source, model, *args, **kwargs))  # merge list of Results into one
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\utils\_contextlib.py", line 40, in generator_context
+    response = gen.send(None)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 308, in stream_inference
+    self.model.warmup(
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\autobackend.py", line 310, in warmup
+    non_max_suppression(warmup_boxes)  # warmup NMS
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\utils\nms.py", line 154, in non_max_suppression
+    i = torchvision.ops.nms(boxes, scores, iou_thres)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torchvision\ops\boxes.py", line 48, in nms
+    return torch.ops.torchvision.nms(boxes, scores, iou_threshold)
+  File "E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\_ops.py", line 1269, in __call__
+    return self._op(*args, **kwargs)
+NotImplementedError: Could not run 'torchvision::nms' with arguments from the 'CUDA' backend. This could be because the operator doesn't exist for this backend, or was omitted during the selective/custom build process (if using custom build). If you are a Facebook employee using PyTorch on mobile, please visit https://fburl.com/ptmfixes for possible resolutions. 'torchvision::nms' is only available for these backends: [CPU, Meta, QuantizedCPU, BackendSelect, Python, FuncTorchDynamicLayerBackMode, Functionalize, Named, Conjugate, Negative, ZeroTensor, ADInplaceOrView, AutogradOther, AutogradCPU, AutogradCUDA, AutogradXLA, AutogradMPS, AutogradXPU, AutogradHPU, AutogradLazy, AutogradMTIA, AutogradMAIA, AutogradPrivateUse1, AutogradMeta, Tracer, AutocastCPU, AutocastMTIA, AutocastMAIA, AutocastXPU, AutocastMPS, AutocastCUDA, FuncTorchBatched, BatchedNestedTensor, FuncTorchVmapMode, Batched, VmapMode, FuncTorchGradWrapper, PythonTLSSnapshot, FuncTorchDynamicLayerFrontMode, PreDispatch, PythonDispatcher].
+
+CPU: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\cpu\nms_kernel.cpp:116 [kernel]
+Meta: registered at E:\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\library.py:1083 [kernel]
+QuantizedCPU: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\quantized\cpu\qnms_kernel.cpp:128 [kernel]
+BackendSelect: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\BackendSelectFallbackKernel.cpp:3 [backend fallback]
+Python: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\PythonFallbackKernel.cpp:198 [backend fallback]
+FuncTorchDynamicLayerBackMode: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\DynamicLayer.cpp:477 [backend fallback]
+Functionalize: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\FunctionalizeFallbackKernel.cpp:384 [backend fallback]
+Named: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\NamedRegistrations.cpp:5 [backend fallback]
+Conjugate: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\ConjugateFallback.cpp:17 [backend fallback]
+Negative: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\native\NegateFallback.cpp:18 [backend fallback]
+ZeroTensor: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\ZeroTensorFallback.cpp:115 [backend fallback]
+ADInplaceOrView: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:103 [backend fallback]
+AutogradOther: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:62 [backend fallback]
+AutogradCPU: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:66 [backend fallback]
+AutogradCUDA: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:74 [backend fallback]
+AutogradXLA: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:86 [backend fallback]
+AutogradMPS: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:94 [backend fallback]
+AutogradXPU: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:70 [backend fallback]
+AutogradHPU: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:107 [backend fallback]
+AutogradLazy: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:90 [backend fallback]
+AutogradMTIA: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:78 [backend fallback]
+AutogradMAIA: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:82 [backend fallback]
+AutogradPrivateUse1: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:111 [backend fallback]
+AutogradMeta: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\VariableFallbackKernel.cpp:98 [backend fallback]
+Tracer: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\autograd\TraceTypeManual.cpp:296 [backend fallback]
+AutocastCPU: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\autocast\nms_kernel.cpp:34 [kernel]
+AutocastMTIA: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\autocast_mode.cpp:480 [backend fallback]
+AutocastMAIA: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\autocast_mode.cpp:518 [backend fallback]
+AutocastXPU: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\autocast\nms_kernel.cpp:41 [kernel]
+AutocastMPS: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\autocast_mode.cpp:221 [backend fallback]
+AutocastCUDA: registered at C:\actions-runner\_work\vision\vision\pytorch\vision\torchvision\csrc\ops\autocast\nms_kernel.cpp:27 [kernel]
+FuncTorchBatched: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\LegacyBatchingRegistrations.cpp:727 [backend fallback]
+BatchedNestedTensor: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\LegacyBatchingRegistrations.cpp:754 [backend fallback]
+FuncTorchVmapMode: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\VmapModeRegistrations.cpp:22 [backend fallback]
+Batched: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\LegacyBatchingRegistrations.cpp:1072 [backend fallback]
+VmapMode: fallthrough registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\VmapModeRegistrations.cpp:32 [backend fallback]
+FuncTorchGradWrapper: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\TensorWrapper.cpp:210 [backend fallback]
+PythonTLSSnapshot: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\PythonFallbackKernel.cpp:206 [backend fallback]
+FuncTorchDynamicLayerFrontMode: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\functorch\DynamicLayer.cpp:473 [backend fallback]
+PreDispatch: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\PythonFallbackKernel.cpp:210 [backend fallback]
+PythonDispatcher: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\aten\src\ATen\core\PythonFallbackKernel.cpp:202 [backend fallback]
+
+2026-04-28 02:00:56,003 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:01:01,024 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:02:30,782 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:02:30,782 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:02:30,782 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:02:30,782 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:02:30,784 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:02:30,784 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:02:30,935 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:02:30,938 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 02:02:30,942 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:02:30,942 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:02:35,753 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:02:39,410 - jvd.inference.ocr - ERROR - PaddleOCR initialization failed, OCR worker disabled: Unknown argument: show_log
+2026-04-28 02:02:51,274 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 02:02:55,361 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:02:55,385 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:03:08,475 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:03:08,475 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:03:08,475 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:03:08,475 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:03:08,478 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:03:08,478 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:03:08,633 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:03:08,637 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 02:03:08,642 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:03:08,643 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:03:10,975 - jvd.inference.ocr - ERROR - PaddleOCR initialization failed, OCR worker disabled: Unknown argument: use_gpu
+2026-04-28 02:03:13,430 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:03:29,046 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 02:03:33,118 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:03:33,135 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:03:40,096 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:03:40,097 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:03:40,097 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:03:40,097 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:03:40,099 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:03:40,099 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:03:40,255 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:03:40,258 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 02:03:40,265 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:03:40,265 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:03:45,019 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:03:50,292 - jvd.inference.ocr - ERROR - PaddleOCR initialization failed, OCR worker disabled: 'paddle.base.libpaddle.AnalysisConfig' object has no attribute 'set_optimization_level'
+2026-04-28 02:04:00,621 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 02:04:04,691 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:04:04,708 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:05:50,197 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:05:50,197 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:05:50,197 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:05:50,197 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:05:50,220 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:05:50,220 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:05:50,373 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:05:50,423 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 02:05:50,429 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:05:50,430 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:05:59,423 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:06:15,168 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 02:06:19,270 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:06:19,926 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:09:37,602 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:09:37,602 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:09:37,603 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:09:37,603 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:09:37,605 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:09:37,605 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:09:37,750 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:09:37,754 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 02:09:37,759 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:09:37,759 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:09:42,500 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:09:58,034 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 02:10:02,121 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:10:03,023 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:10:20,427 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:10:20,427 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:10:20,428 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:10:20,428 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:10:20,430 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:10:20,430 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:10:20,578 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:10:20,598 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test2...
+2026-04-28 02:10:20,602 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:10:20,603 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test2.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:10:25,359 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:10:25,359 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 2, Dwell: 3.0s
+2026-04-28 02:10:40,639 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_1
+2026-04-28 02:10:41,929 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_2
+2026-04-28 02:10:47,703 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:10:48,573 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:14:29,191 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:14:29,191 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:14:29,191 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:14:29,191 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:14:29,193 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:14:29,193 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:14:29,343 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:14:29,345 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 02:14:29,351 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:14:29,351 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:14:34,091 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:14:49,645 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 02:14:53,763 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:14:54,520 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:15:08,167 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 02:15:08,167 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 02:15:08,167 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 02:15:08,167 - jvd.inference.detector - INFO - Loading PyTorch model: models\yolo26n.pt
+2026-04-28 02:15:08,360 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 02:15:08,360 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:15:08,583 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:15:08,586 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-04-28 02:15:08,592 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:15:08,592 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:15:17,348 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:15:46,939 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 02:15:55,013 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:15:55,520 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 02:16:11,438 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 11.94 GB (fraction=0.2345)
+2026-04-28 02:16:11,438 - jvd.core.device - INFO - GPU: NVIDIA GeForce RTX 5070 | Total VRAM: 11.94 GB | CUDA Capability: 12.0
+2026-04-28 02:16:11,438 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-04-28 02:16:11,438 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-04-28 02:16:11,440 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-04-28 02:16:11,440 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 02:16:11,590 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 02:16:11,598 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test2...
+2026-04-28 02:16:11,605 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 02:16:11,605 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test2.mp4 (720x1280 @ 30.0fps)
+2026-04-28 02:16:16,351 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 02:16:16,351 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 2, Dwell: 3.0s
+2026-04-28 02:16:31,621 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_1
+2026-04-28 02:16:32,908 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_2
+2026-04-28 02:16:38,674 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 02:16:39,150 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.

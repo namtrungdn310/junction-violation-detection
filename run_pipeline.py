@@ -3,10 +3,17 @@
 run_pipeline.py — Command-line interface to execute the Junction Violation Detection system.
 """
 
+
+
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import argparse
-import sys
 import logging
+import sys
 from pathlib import Path
+
 from jvd.utils.roi_helper import load_roi_config, select_roi_points
 
 # Ensure log directory exists
@@ -50,16 +57,16 @@ def main():
     )
     parser.add_argument("--export-dir", type=str, default="data/exports", help="Directory to save evidence")
     parser.add_argument("--no-display", action="store_true", help="Disable OSD display window")
-    
+
     args = parser.parse_args()
-    
+
     # 1. Try to load ROI from config
     roi_points = None
     if not args.no_display:
         roi_points = load_roi_config(args.video)
         if roi_points:
             print(f"Loaded existing ROI config for {args.video}")
-    
+
     # 2. If no config or headless, handle selection
     if roi_points is None:
         if args.no_display:
@@ -69,7 +76,7 @@ def main():
             if roi_points is None:
                 print("ROI selection cancelled. Exiting.")
                 return
-    
+
     engine = PipelineEngine(
         video_source=args.video,
         yolo_model=args.model,

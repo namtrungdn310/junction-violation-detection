@@ -36,7 +36,6 @@ import logging
 import queue
 import threading
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -44,9 +43,8 @@ import numpy as np
 from jvd.utils.transform import (
     Frame,
     Keypoints,
-    get_anchor_compensation,
     extract_keypoints,
-    warp_and_crop,
+    get_anchor_compensation,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,16 +60,16 @@ class _FrameProcessor:
     """
     detector:   str            = "ORB" # Switch back to ORB for speed
     crop_pct:   float          = 0.05
-    _anchor_gray: Optional[Frame] = field(default=None, init=False, repr=False)
-    _anchor_pts:  Optional[Keypoints] = field(default=None, init=False, repr=False)
+    _anchor_gray: Frame | None = field(default=None, init=False, repr=False)
+    _anchor_pts:  Keypoints | None = field(default=None, init=False, repr=False)
     _counter:   int               = field(default=0,    init=False, repr=False)
-    _last_M:    Optional[np.ndarray] = field(default=None, init=False, repr=False)
+    _last_M:    np.ndarray | None = field(default=None, init=False, repr=False)
 
     def process(
         self,
         frame: Frame,
-        boxes: List[Tuple[int, int, int, int]],
-    ) -> Transform:
+        boxes: list[tuple[int, int, int, int]],
+    ) -> np.ndarray:
         """Estimate transform from Current back to Anchor (Frame 0).
         """
         curr_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -87,7 +85,7 @@ class _FrameProcessor:
              self._anchor_pts = extract_keypoints(self._anchor_gray, self.detector, boxes)
 
         M_comp = get_anchor_compensation(self._anchor_gray, curr_gray, self._anchor_pts)
-        
+
         # Smoothing
         if self._last_M is not None:
             alpha = 0.5  # More smoothing for ROI motion
@@ -121,15 +119,15 @@ class VideoStabilizer:
         queue_maxsize: int   = _QUEUE_MAXSIZE,
     ) -> None:
         self._raw_q: queue.Queue[
-            Tuple[Frame, List[Tuple[int, int, int, int]]]
+            tuple[Frame, list[tuple[int, int, int, int]]]
         ] = queue.Queue(maxsize=queue_maxsize)
-        self._matrix_q: queue.Queue[Tuple[Frame, np.ndarray]] = queue.Queue(maxsize=queue_maxsize)
+        self._matrix_q: queue.Queue[tuple[Frame, np.ndarray]] = queue.Queue(maxsize=queue_maxsize)
 
         self._proc   = _FrameProcessor(
             detector=detector,
             crop_pct=crop_pct,
         )
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._stop   = threading.Event()
         logger.info(
             f"MotionEstimator ready: detector={detector}, queue_cap={queue_maxsize}"
@@ -157,7 +155,7 @@ class VideoStabilizer:
     def put_frame(
         self,
         frame: Frame,
-        vehicle_boxes: Optional[List[Tuple[int, int, int, int]]] = None,
+        vehicle_boxes: list[tuple[int, int, int, int]] | None = None,
     ) -> None:
         if self._raw_q.full():
             try:
@@ -166,7 +164,7 @@ class VideoStabilizer:
                 pass
         self._raw_q.put_nowait((frame.copy(), vehicle_boxes or []))
 
-    def get_latest(self, timeout: float = 0.05) -> Tuple[Optional[Frame], Optional[np.ndarray]]:
+    def get_latest(self, timeout: float = 0.05) -> tuple[Frame | None, np.ndarray | None]:
         """Pop next (raw_frame, matrix), or (None, None) on timeout."""
         try:
             return self._matrix_q.get(timeout=timeout)

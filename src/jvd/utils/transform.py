@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import logging
 from collections import deque
-from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 import cv2
 import numpy as np
@@ -54,7 +54,7 @@ class TrajectoryPoint:
 def extract_keypoints(
     gray: Frame,
     detector: str = "ORB",
-    vehicle_boxes: Optional[List[Tuple[int, int, int, int]]] = None,
+    vehicle_boxes: list[tuple[int, int, int, int]] | None = None,
 ) -> Keypoints:
     """
     Detect static-background keypoints, masking out moving vehicles.
@@ -141,7 +141,7 @@ def get_anchor_compensation(
     curr_pts, status, _ = cv2.calcOpticalFlowPyrLK(
         anchor_gray, curr_gray, anchor_pts, None, **_LK_PARAMS
     )
-    
+
     if status is None or np.sum(status) < 10: # Higher threshold for anchor
         return identity
 

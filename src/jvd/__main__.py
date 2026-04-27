@@ -9,7 +9,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import sys
 
 from jvd.core.device import DeviceManager
 from jvd.utils.logger import setup_logger

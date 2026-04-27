@@ -8,9 +8,8 @@ mutation during multi-stage pipeline processing.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Optional
 
 
 class VehicleClass(Enum):
@@ -129,10 +128,10 @@ class DetectionEvent:
     frame_id: int
     timestamp: float
     bbox: BoundingBox
-    track_id: Optional[int] = None
+    track_id: int | None = None
     class_label: VehicleClass = VehicleClass.UNKNOWN
     confidence: float = 0.0
-    velocity: Optional[tuple[float, float]] = None
+    velocity: tuple[float, float] | None = None
 
     def __post_init__(self) -> None:
         """Validate field constraints on construction."""
@@ -156,7 +155,7 @@ class ViolationRecord:
     """
 
     event: DetectionEvent
-    license_plate: Optional[str] = None
+    license_plate: str | None = None
     dwell_time_seconds: float = 0.0
-    evidence_frame_path: Optional[str] = None
+    evidence_frame_path: str | None = None
     violation_type: str = "yellow_box_stop"

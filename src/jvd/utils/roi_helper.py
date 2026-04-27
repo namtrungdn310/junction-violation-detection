@@ -1,7 +1,9 @@
 import json
+from pathlib import Path
+
 import cv2
 import numpy as np
-from pathlib import Path
+
 
 def get_config_path():
     path = Path("configs/roi_configs.json")
@@ -14,7 +16,7 @@ def load_roi_config(video_path: str):
     if not config_path.exists():
         return None
     try:
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             data = json.load(f)
             return data.get(str(Path(video_path).absolute()))
     except:
@@ -26,11 +28,11 @@ def save_roi_config(video_path: str, points: list):
     data = {}
     if config_path.exists():
         try:
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 data = json.load(f)
         except:
             pass
-    
+
     data[str(Path(video_path).absolute())] = points
     with open(config_path, "w") as f:
         json.dump(data, f, indent=4)
@@ -72,7 +74,7 @@ def select_roi_points(video_path: str, current_frame: np.ndarray = None):
 
         status = f"Points: {len(points)} | 'c': confirm | 'r': reset | 'q': cancel"
         cv2.putText(canvas, status, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        
+
         disp = cv2.resize(canvas, (display_w, display_h))
         cv2.imshow(window_name, disp)
 

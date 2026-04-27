@@ -10,8 +10,6 @@ yellow-box polygons with Alpha Blending, and state labels
 
 from __future__ import annotations
 
-from typing import Dict, List, Set
-
 import cv2
 import numpy as np
 
@@ -32,11 +30,11 @@ class OSDRenderer:
     def draw(
         self,
         frame: np.ndarray,
-        events: List[DetectionEvent],
+        events: list[DetectionEvent],
         roi: RegionOfInterest,
-        states: Dict[int, TrackState],
-        emergency_ids: Set[int],
-        ocr_results: Dict[int, str],
+        states: dict[int, TrackState],
+        emergency_ids: set[int],
+        ocr_results: dict[int, str],
         matrix: np.ndarray | None = None,
         fps: float = 0.0,
         frame_id: int = 0,
@@ -51,7 +49,7 @@ class OSDRenderer:
         # 1. Global OSD (FPS & Frame Counter)
         info_text = f"FPS: {fps:.1f} | Frame: {frame_id}/{total_frames}"
         cv2.putText(
-            output, info_text, (20, 40), 
+            output, info_text, (20, 40),
             cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 2
         )
 
@@ -65,7 +63,7 @@ class OSDRenderer:
                 poly = poly_transformed.reshape(-1, 2).astype(np.int32)
             except cv2.error:
                 pass
-        
+
         # Pure yellow outline (no fill)
         cv2.polylines(output, [poly], True, (0, 255, 255), 3)
 
@@ -87,7 +85,7 @@ class OSDRenderer:
 
             x1, y1, x2, y2 = map(int, [ev.bbox.x1, ev.bbox.y1, ev.bbox.x2, ev.bbox.y2])
             vehicle_type = CLASS_MAP.get(ev.class_label.name.lower(), ev.class_label.name)
-            
+
             # Default: Outside ROI (Royal Blue)
             color = (255, 50, 50) # BGR Royal Blue
             thickness = 2
@@ -100,7 +98,7 @@ class OSDRenderer:
                     dwell = 0.0
                     if state.first_stop_time is not None:
                         dwell = ev.timestamp - state.first_stop_time
-                    
+
                     if state.violation_triggered:
                         # Inside ROI & Violating (Red)
                         color = (0, 0, 255) # BGR Red
@@ -117,12 +115,12 @@ class OSDRenderer:
 
             # Render Box
             cv2.rectangle(output, (x1, y1), (x2, y2), color, thickness)
-            
+
             # Render Label with Background for readability (Make text bolder: thickness=2)
             (tw, th), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
             cv2.rectangle(output, (x1, y1 - th - 10), (x1 + tw, y1), color, -1)
             cv2.putText(
-                output, label, (x1, y1 - 5), 
+                output, label, (x1, y1 - 5),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
             )
 

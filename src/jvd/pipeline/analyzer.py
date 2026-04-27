@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Set, Tuple
 
 import cv2
 import numpy as np
@@ -55,14 +54,14 @@ _STOP_BUFFER_FRAMES   = 15       # frames to keep "stopped" status during tracki
 class RegionOfInterest:
     """Resolution-independent polygon manager for the yellow box ROI."""
 
-    def __init__(self, normalized_points: List[Tuple[float, float]]) -> None:
+    def __init__(self, normalized_points: list[tuple[float, float]]) -> None:
         if len(normalized_points) < 3:
             raise ValueError("ROI requires at least 3 points to form a polygon.")
         self._norm_pts = normalized_points
         self._scaled_pts: np.ndarray | None = None
-        self._cached_dim: Tuple[int, int] | None = None
+        self._cached_dim: tuple[int, int] | None = None
 
-    def update_points(self, normalized_points: List[Tuple[float, float]]) -> None:
+    def update_points(self, normalized_points: list[tuple[float, float]]) -> None:
         """Update ROI points and clear caches."""
         if len(normalized_points) < 3:
             return
@@ -80,7 +79,7 @@ class RegionOfInterest:
         self._cached_dim = (width, height)
         return self._scaled_pts
 
-    def contains(self, pt: Tuple[float, float], width: int, height: int) -> bool:
+    def contains(self, pt: tuple[float, float], width: int, height: int) -> bool:
         """Ray-casting point-in-polygon test using cv2."""
         poly = self.get_polygon(width, height)
         # measureDist=False returns +1 inside, 0 on edge, -1 outside
@@ -101,11 +100,11 @@ class TrackState:
 class ViolationAnalyzer:
     """Evaluates spatial constraints and kinematic interactions."""
 
-    def __init__(self, roi_normalized: List[Tuple[float, float]]) -> None:
+    def __init__(self, roi_normalized: list[tuple[float, float]]) -> None:
         self.roi = RegionOfInterest(roi_normalized)
-        self.states: Dict[int, TrackState] = {}
+        self.states: dict[int, TrackState] = {}
 
-    def _is_stopped(self, velocity: Tuple[float, float] | None) -> bool:
+    def _is_stopped(self, velocity: tuple[float, float] | None) -> bool:
         if velocity is None:
             return False
         vx, vy = velocity
@@ -124,13 +123,13 @@ class ViolationAnalyzer:
 
     def analyze(
         self,
-        events: List[DetectionEvent],
+        events: list[DetectionEvent],
         tracker: VehicleTrackerManager,
         frame_width: int,
         frame_height: int,
-        emergency_ids: Set[int] | None = None,
+        emergency_ids: set[int] | None = None,
         matrix: np.ndarray | None = None,
-    ) -> List[ViolationRecord]:
+    ) -> list[ViolationRecord]:
         """
         Process current frame events to find junction violations.
 
@@ -142,21 +141,21 @@ class ViolationAnalyzer:
             emergency_ids: Set of track_ids permanently exempted.
             matrix: 2x3 transformation matrix (Current -> Anchor).
         """
-        violations: List[ViolationRecord] = []
-        current_stopped_events: List[DetectionEvent] = []
-        active_ids: Set[int] = set()
+        violations: list[ViolationRecord] = []
+        current_stopped_events: list[DetectionEvent] = []
+        active_ids: set[int] = set()
         emergency_ids = emergency_ids or set()
 
         # 1. Filter events & Kinematic Analysis
         for ev in events:
             if ev.track_id is None or ev.track_id in emergency_ids:
                 continue
-            
+
             active_ids.add(ev.track_id)
 
             # Ground touch point
             px, py = ev.bbox.center[0], ev.bbox.y2
-            
+
             # If camera moved, transform the point back to anchor coordinate system
             if matrix is not None:
                 # Point transformation: p' = M * [x, y, 1]^T
@@ -166,7 +165,7 @@ class ViolationAnalyzer:
 
             if ev.track_id not in self.states:
                 self.states[ev.track_id] = TrackState()
-            
+
             state = self.states[ev.track_id]
             state.last_seen_frame = ev.frame_id
 
@@ -174,7 +173,7 @@ class ViolationAnalyzer:
             # Use a larger margin (30px) for vehicles already in violation to prevent flicker.
             margin = 30 if state.violation_triggered else 2
             is_inside = self.roi.contains((px, py), frame_width, frame_height)
-            
+
             if not is_inside:
                 # Check with margin (simple box approximation for speed)
                 poly = self.roi.get_polygon(frame_width, frame_height)
@@ -183,7 +182,7 @@ class ViolationAnalyzer:
                     is_inside = True
 
             state.is_inside = is_inside
-            
+
             if not is_inside:
                 # If they truly leave, we can keep the state for a bit but reset timers
                 state.first_stop_time = None
@@ -222,7 +221,7 @@ class ViolationAnalyzer:
                         if hiou > _BLOCK_HIOU_THRESH:
                             is_blocked = True
                             break
-            
+
             state.is_blocked = is_blocked
 
             # 3. State Machine & Violation Generation
@@ -245,7 +244,7 @@ class ViolationAnalyzer:
         # We wait _MAX_STALE_FRAMES before deleting to handle detection hiccups
         current_frame = events[0].frame_id if events else 0
         stale_keys = [
-            tid for tid, s in self.states.items() 
+            tid for tid, s in self.states.items()
             if (current_frame - s.last_seen_frame) > 120 # 4 seconds grace period
         ]
         for tid in stale_keys:

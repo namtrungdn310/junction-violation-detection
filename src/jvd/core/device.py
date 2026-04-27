@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Optional
 
 import torch
 
@@ -35,7 +34,7 @@ class DeviceManager:
         tensor = torch.zeros(10, device=dm.device)
     """
 
-    _instance: Optional[DeviceManager] = None
+    _instance: DeviceManager | None = None
     _lock: threading.Lock = threading.Lock()
     _initialized: bool = False
 
@@ -153,7 +152,7 @@ class DeviceManager:
             HardwareConstraintError: If the requested limit exceeds
                 the total physical VRAM of the GPU.
         """
-        total_vram_bytes = torch.cuda.get_device_properties(0).total_mem
+        total_vram_bytes = torch.cuda.get_device_properties(0).total_memory
         total_vram_gb = total_vram_bytes / (1024 ** 3)
 
         if limit_gb > total_vram_gb:
@@ -186,9 +185,11 @@ class DeviceManager:
         return max(0.10, min(0.95, raw))
 
     def _log_gpu_info(self) -> None:
-        """Log diagnostic GPU information."""
+        """Log diagnostic information about the detected GPU."""
         props = torch.cuda.get_device_properties(0)
-        total_gb = props.total_mem / (1024 ** 3)
+        total_gb = props.total_memory / (1024 ** 3)
+        torch.cuda.memory_reserved(0) / (1024 ** 3)
+        torch.cuda.memory_allocated(0) / (1024 ** 3)
         logger.info(
             f"GPU: {props.name} | "
             f"Total VRAM: {total_gb:.2f} GB | "
