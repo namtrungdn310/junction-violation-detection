@@ -170,10 +170,9 @@ class ViolationAnalyzer:
             state = self.states[ev.track_id]
             state.last_seen_frame = ev.frame_id
 
-            # Ignore vehicles outside the yellow box (using anchor-aligned coords)
-            # Use a margin to be more forgiving for vehicles on the edge or entering from side
-            # If already in violation, use a larger margin (30px) to prevent flicker at edges
-            margin = 30 if state.violation_triggered else 10
+            # Use a strict margin (2px) for entry to avoid premature triggers at edges.
+            # Use a larger margin (30px) for vehicles already in violation to prevent flicker.
+            margin = 30 if state.violation_triggered else 2
             is_inside = self.roi.contains((px, py), frame_width, frame_height)
             
             if not is_inside:

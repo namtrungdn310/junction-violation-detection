@@ -29,6 +29,13 @@ class ViolationReporter:
         self.root_export_dir = Path(export_dir)
         self.video_name = video_name
         self.session_dir = self.root_export_dir / self.video_name
+        
+        # ── Auto-cleanup old evidence for this video ─────────────────────────
+        if self.session_dir.exists():
+            import shutil
+            logger.info(f"Clearing old evidence for {self.video_name}...")
+            shutil.rmtree(self.session_dir)
+            
         self.session_dir.mkdir(parents=True, exist_ok=True)
         
         self.fps = fps
