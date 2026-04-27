@@ -23,7 +23,8 @@ _COCO_VEHICLE_IDS  = [2, 3, 5, 7]   # car, motorcycle, bus, truck
 _DEFAULT_CONF      = 0.4
 _DEFAULT_IMGSZ     = 640
 _HISTORY_LEN       = 30             # centre points retained per track
-_MAX_STALE_FRAMES  = 60             # frames before ID eviction (= track_buffer)
+_MAX_STALE_FRAMES  = 120            # frames before ID eviction (= track_buffer)
+_SMOOTHING_ALPHA   = 0.3            # Lower weight for new box = smoother movement
 
 # Resolve config path relative to this file's package root
 _BYTETRACK_CFG = Path(__file__).parent.parent.parent.parent / "configs" / "custom_bytetrack.yaml"
@@ -151,25 +152,50 @@ class VehicleTrackerManager:
         self._histories: Dict[int, Deque[Tuple[float, float]]] = {}
         # track_id → last frame_id it was seen on
         self._last_seen: Dict[int, int] = {}
+        # track_id → smoothed BoundingBox
+        self._last_boxes: Dict[int, BoundingBox] = {}
 
     # ── Update ────────────────────────────────────────────────────────────────
 
-    def update(self, events: List[DetectionEvent], frame_id: int) -> None:
-        """Ingest a list of tracking events and append centres to histories.
+    def update(self, events: List[DetectionEvent], frame_id: int) -> List[DetectionEvent]:
+        """Ingest tracking events, apply Box Smoothing, and return smoothed events."""
+        from dataclasses import replace
+        smoothed_events: List[DetectionEvent] = []
 
-        Args:
-            events:   ``DetectionEvent`` list from ``ByteTrackSession.track()``.
-            frame_id: Current frame index (used for stale detection).
-        """
         for ev in events:
             if ev.track_id is None:
+                smoothed_events.append(ev)
                 continue
+            
             tid = ev.track_id
+            current_bbox = ev.bbox
+            
+            # 1. Bounding Box Smoothing (EWA)
+            if tid in self._last_boxes:
+                prev = self._last_boxes[tid]
+                alpha = _SMOOTHING_ALPHA
+                
+                # Smooth each coordinate
+                smoothed_bbox = BoundingBox(
+                    x1 = alpha * current_bbox.x1 + (1 - alpha) * prev.x1,
+                    y1 = alpha * current_bbox.y1 + (1 - alpha) * prev.y1,
+                    x2 = alpha * current_bbox.x2 + (1 - alpha) * prev.x2,
+                    y2 = alpha * current_bbox.y2 + (1 - alpha) * prev.y2
+                )
+                # Create a new event with the smoothed box
+                ev = replace(ev, bbox=smoothed_bbox)
+            
+            self._last_boxes[tid] = ev.bbox
+            smoothed_events.append(ev)
+
+            # 2. History & Persistence
             if tid not in self._histories:
                 self._histories[tid] = deque(maxlen=self._history_len)
             cx, cy = ev.bbox.center
             self._histories[tid].append((cx, cy))
             self._last_seen[tid] = frame_id
+        
+        return smoothed_events
 
     # ── Queries ───────────────────────────────────────────────────────────────
 
@@ -213,6 +239,7 @@ class VehicleTrackerManager:
         for tid in stale:
             self._histories.pop(tid, None)
             self._last_seen.pop(tid, None)
+            self._last_boxes.pop(tid, None)
         if stale:
             logger.debug(f"Evicted {len(stale)} stale track IDs: {stale}")
         return len(stale)

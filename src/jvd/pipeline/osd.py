@@ -37,60 +37,93 @@ class OSDRenderer:
         states: Dict[int, TrackState],
         emergency_ids: Set[int],
         ocr_results: Dict[int, str],
+        matrix: np.ndarray | None = None,
+        fps: float = 0.0,
+        frame_id: int = 0,
+        total_frames: int = 0
     ) -> np.ndarray:
         """
-        Draw all analytical states and ROI onto a copy of the frame.
+        Draw analytical states and ROI onto a copy of the frame with updated UI.
         """
         output = frame.copy()
         h, w = output.shape[:2]
 
-        # 1. Determine global ROI status
-        roi_color = self.COLOR_GREEN
-        for ev in events:
-            if ev.track_id in states and states[ev.track_id].violation_triggered:
-                roi_color = self.COLOR_RED
-                break
+        # 1. Global OSD (FPS & Frame Counter)
+        info_text = f"FPS: {fps:.1f} | Frame: {frame_id}/{total_frames}"
+        cv2.putText(
+            output, info_text, (20, 40), 
+            cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 2
+        )
 
-        # 2. Draw ROI with Alpha Blending
+        # 2. Draw ROI (Yellow Outline Only)
         poly = roi.get_polygon(w, h)
-        overlay = output.copy()
-        cv2.fillPoly(overlay, [poly], roi_color)
-        output = cv2.addWeighted(overlay, 0.3, output, 0.7, 0)
-        cv2.polylines(output, [poly], True, roi_color, 2)
+        if matrix is not None:
+            try:
+                M_forward = cv2.invertAffineTransform(matrix)
+                poly_reshaped = poly.reshape(-1, 1, 2).astype(np.float32)
+                poly_transformed = cv2.transform(poly_reshaped, M_forward)
+                poly = poly_transformed.reshape(-1, 2).astype(np.int32)
+            except cv2.error:
+                pass
+        
+        # Pure yellow outline (no fill)
+        cv2.polylines(output, [poly], True, (0, 255, 255), 3)
 
-        # 3. Draw Bounding Boxes and Labels
+        # Vehicle type abbreviation map
+        CLASS_MAP = {
+            "motorcycle": "moto",
+            "motorbike": "moto",
+            "motobike": "moto",
+            "car": "car",
+            "truck": "truck",
+            "bus": "bus",
+            "bicycle": "bike"
+        }
+
+        # 3. Draw Bounding Boxes and Detailed Labels
         for ev in events:
-            if ev.track_id is None:
-                continue
-
             tid = ev.track_id
+            if tid is None: continue
+
             x1, y1, x2, y2 = map(int, [ev.bbox.x1, ev.bbox.y1, ev.bbox.x2, ev.bbox.y2])
+            vehicle_type = CLASS_MAP.get(ev.class_label.name.lower(), ev.class_label.name)
             
-            # Default state
-            color = self.COLOR_GREEN
-            label = f"{ev.class_label.name} {tid}"
+            # Default: Outside ROI (Royal Blue)
+            color = (255, 50, 50) # BGR Royal Blue
             thickness = 2
+            label = f"{tid} | {vehicle_type}"
 
-            # State overrides
-            if tid in emergency_ids:
-                color = self.COLOR_BLUE
-                label = f"EMERGENCY {tid}"
-            elif tid in states:
+            if tid in states:
                 state = states[tid]
-                if state.violation_triggered:
-                    color = self.COLOR_RED
-                    thickness = 3
-                    lp = ocr_results.get(tid, "PENDING")
-                    label = f"<VIOLATION> {lp}"
-                elif state.is_blocked:
-                    color = self.COLOR_YELLOW
-                    label = f"BLOCKED {tid}"
+                if state.is_inside:
+                    # Calculate real-time dwell time (starts when vehicle stops)
+                    dwell = 0.0
+                    if state.first_stop_time is not None:
+                        dwell = ev.timestamp - state.first_stop_time
+                    
+                    if state.violation_triggered:
+                        # Inside ROI & Violating (Red)
+                        color = (0, 0, 255) # BGR Red
+                        thickness = 3
+                        lp = ocr_results.get(tid, "SEARCHING...")
+                        label = f"{tid} | {vehicle_type} | {dwell:.1f}s | {lp}"
+                    else:
+                        # Inside ROI & Normal (Green)
+                        color = (0, 255, 0) # BGR Green
+                        label = f"{tid} | {vehicle_type} | {dwell:.1f}s"
+                else:
+                    # Outside ROI
+                    pass
 
-            # Render
+            # Render Box
             cv2.rectangle(output, (x1, y1), (x2, y2), color, thickness)
+            
+            # Render Label with Background for readability (Make text bolder: thickness=2)
+            (tw, th), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+            cv2.rectangle(output, (x1, y1 - th - 10), (x1 + tw, y1), color, -1)
             cv2.putText(
-                output, label, (x1, max(10, y1 - 10)), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2
+                output, label, (x1, y1 - 5), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
             )
 
         return output

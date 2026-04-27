@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import multiprocessing as mp
+from pathlib import Path
 from typing import List, Tuple
 
 import cv2
@@ -24,6 +25,7 @@ from jvd.pipeline.analyzer import ViolationAnalyzer
 from jvd.pipeline.emergency import EmergencyVehicleDetector
 from jvd.pipeline.osd import OSDRenderer
 from jvd.pipeline.reporter import ViolationReporter
+from jvd.utils.stabilizer import VideoStabilizer
 
 logger = logging.getLogger(__name__)
 
@@ -36,16 +38,20 @@ class PipelineEngine:
         video_source: str,
         yolo_model: str,
         roi_points: List[Tuple[float, float]],
+        device_flag: str = "gpu",
+        vram_limit_gb: float = 2.8,
+        enable_emergency: bool = False,
         export_dir: str = "data/exports",
         display: bool = True,
     ) -> None:
         self.video_source = video_source
         self.display = display
         self.export_dir = export_dir
+        self.enable_emergency = enable_emergency
 
         # 1. Device Setup (Enforce GPU VRAM limit)
         self.dm = DeviceManager()
-        self.dm.initialize(use_gpu=True, max_vram_fraction=0.9)
+        self.dm.initialize(device_flag=device_flag, vram_limit_gb=vram_limit_gb)
 
         # 2. Inference & Tracking
         self.detector = ObjectDetector(yolo_model, device=self.dm.device)
@@ -60,9 +66,12 @@ class PipelineEngine:
 
         # 4. Pipeline Logic
         self.analyzer = ViolationAnalyzer(roi_points)
-        self.emergency = EmergencyVehicleDetector()
+        self.emergency = EmergencyVehicleDetector() if self.enable_emergency else None
         self.osd = OSDRenderer()
         self.reporter: ViolationReporter | None = None
+        
+        # 5. Stabilization
+        self.stabilizer = VideoStabilizer(smooth_window=30, crop_pct=0.02)
 
     def run(self) -> None:
         """Start the video processing loop."""
@@ -72,36 +81,101 @@ class PipelineEngine:
             return
 
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        self.emergency.fps = fps
-        self.reporter = ViolationReporter(export_dir=self.export_dir, fps=int(fps))
+        if self.enable_emergency and self.emergency is not None:
+            self.emergency.fps = fps
+        
+        video_name = Path(self.video_source).stem
+        self.reporter = ViolationReporter(
+            export_dir=self.export_dir, 
+            fps=int(fps),
+            video_name=video_name
+        )
+        
         self.lpr.start()
+        self.stabilizer.start()
+
+        if self.display:
+            gui_line = next(
+                (line for line in cv2.getBuildInformation().splitlines() if "GUI:" in line),
+                "GUI: UNKNOWN",
+            )
+            if "NONE" in gui_line.upper():
+                logger.error(
+                    "cv2.imshow is unavailable because OpenCV was built without HighGUI. "
+                    "Reinstall GUI build with: uv pip install --python .venv\\Scripts\\python.exe --force-reinstall opencv-contrib-python==4.10.0.84"
+                )
+                return
 
         frame_id = 0
-        logger.info(f"Starting pipeline on {self.video_source} ({width}x{height} @ {fps}fps)")
+        import time
+        t_start = time.time()
+        current_fps = 0.0
+
+        # Statistics for Summary Report
+        unique_vehicles_in_roi: Set[int] = set()
 
         try:
+            logger.info(f"Starting pipeline on {self.video_source} ({width}x{height} @ {fps}fps)")
+
             while True:
-                ret, frame = cap.read()
+                ret, raw_frame = cap.read()
                 if not ret:
                     break
 
                 frame_id += 1
                 timestamp = frame_id / fps
 
+                # Calculate FPS every 10 frames
+                if frame_id % 10 == 0:
+                    t_now = time.time()
+                    current_fps = 10 / (t_now - t_start)
+                    t_start = t_now
+
+                # 0. Frame Stabilization
+                self.stabilizer.put_frame(raw_frame)
+                _, matrix = self.stabilizer.get_latest(timeout=0.01)
+                
+                # Use RAW frame for all downstream AI tasks to avoid stabilization artifacts
+                frame = raw_frame
+
                 # A. Core Tracking Loop
                 events = self.tracker_session.track(frame, frame_id, timestamp)
-                self.tracker_mgr.update(events, frame_id)
+                
+                # Apply smoothing and update history
+                events = self.tracker_mgr.update(events, frame_id)
 
                 # B. Emergency Override
-                emerg_ids = self.emergency.process(frame, events)
+                emerg_ids = self.emergency.get_emergency_ids(frame, events) if self.emergency else set()
 
-                # C. Violation Reasoning
+                # C. Spatial Violation Reasoning
                 violations = self.analyzer.analyze(
-                    events, self.tracker_mgr, width, height, emergency_ids=emerg_ids
+                    events=events,
+                    tracker=self.tracker_mgr,
+                    matrix=matrix,
+                    frame_width=width,
+                    frame_height=height,
+                    emergency_ids=emerg_ids
                 )
+
+                # Track unique vehicles seen in ROI for report (Strict Spatial Check)
+                for ev in events:
+                    tid = ev.track_id
+                    if tid is not None:
+                        # Only count if the vehicle is spatially inside the ROI right now
+                        px, py = ev.bbox.center[0], ev.bbox.y2
+                        if matrix is not None:
+                            pt = np.array([px, py, 1.0], dtype=np.float32)
+                            t_pt = matrix @ pt
+                            px, py = t_pt[0], t_pt[1]
+                        
+                        if self.analyzer.roi.contains((px, py), width, height):
+                            # Filter out tracking noise: require at least 5 frames of history (more sensitive to quick entries)
+                            if len(self.tracker_mgr.get_history(tid)) >= 5:
+                                unique_vehicles_in_roi.add(tid)
 
                 # D. OCR & Evidence Triggers
                 for v in violations:
@@ -114,27 +188,35 @@ class PipelineEngine:
                     x1, y1, x2, y2 = map(int, [bbox.x1, bbox.y1, bbox.x2, bbox.y2])
                     crop = frame[max(0, y1):min(height, y2), max(0, x1):min(width, x2)]
                     
-                    self.lpr.enqueue(tid, crop)
+                    self.lpr.enqueue(int(tid), crop)
                     
                     # The OCR text might take a few frames to arrive asynchronously
-                    lp_text = self.ocr_results.get(tid, "PENDING")
+                    lp_text = self.ocr_results.get(int(tid), "PENDING")
                     
                     self.reporter.trigger_violation(
-                        track_id=tid,
+                        track_id=int(tid),
                         timestamp=timestamp,
                         lp_text=lp_text,
                         wide_shot=frame,
                         lp_crop=crop
                     )
-
-                # E. Render OSD
+                    
+                # E. Rendering (Pass FPS and frame counter)
                 osd_frame = self.osd.draw(
-                    frame, events, self.analyzer.roi, 
-                    self.analyzer.states, emerg_ids, self.ocr_results
+                    frame=frame, 
+                    events=events, 
+                    roi=self.analyzer.roi, 
+                    states=self.analyzer.states, 
+                    emergency_ids=emerg_ids, 
+                    ocr_results=self.ocr_results,
+                    matrix=matrix,
+                    fps=current_fps,
+                    frame_id=frame_id,
+                    total_frames=total_frames
                 )
 
                 # F. Buffer Evidence
-                self.reporter.add_frame(osd_frame)
+                self.reporter.add_frame(osd_frame, self.ocr_results)
 
                 # G. Housekeeping
                 if frame_id % 60 == 0:
@@ -142,12 +224,41 @@ class PipelineEngine:
 
                 # H. User Interface
                 if self.display:
-                    # Resize for display if too large
-                    disp = cv2.resize(osd_frame, (1280, 720)) if width > 1280 else osd_frame
+                    # Smart resize: maintain aspect ratio, target height 800
+                    h_orig, w_orig = osd_frame.shape[:2]
+                    display_h = 800
+                    scale = h_orig / display_h
+                    display_w = int(w_orig / scale)
+                    
+                    disp = cv2.resize(osd_frame, (display_w, display_h))
+                    
+                    cv2.namedWindow("JVD Surveillance", cv2.WINDOW_NORMAL)
                     cv2.imshow("JVD Surveillance", disp)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                    
+                    key = cv2.waitKey(30) & 0xFF
+                    if key == ord('q'):
                         logger.info("Quit signal received.")
                         break
+                    elif key == ord('r'):
+                        logger.info("Re-selecting ROI...")
+                        from jvd.utils.roi_helper import select_roi_points
+                        new_pts = select_roi_points(self.video_source, current_frame=raw_frame)
+                        if new_pts:
+                            if matrix is not None:
+                                h_img, w_img = raw_frame.shape[:2]
+                                transformed_pts = []
+                                for nx, ny in new_pts:
+                                    # Normalized -> Pixels
+                                    px, py = nx * w_img, ny * h_img
+                                    # Transform: p' = M * [x, y, 1]^T
+                                    pt = np.array([px, py, 1.0], dtype=np.float32)
+                                    t_pt = matrix @ pt
+                                    # Pixels -> Normalized
+                                    transformed_pts.append((t_pt[0] / w_img, t_pt[1] / h_img))
+                                new_pts = transformed_pts
+                            
+                            self.analyzer.roi.update_points(new_pts)
+                            logger.info("ROI updated and saved successfully.")
 
         except KeyboardInterrupt:
             logger.info("Interrupted by user.")
@@ -155,7 +266,31 @@ class PipelineEngine:
             logger.exception(f"Pipeline crashed: {e}")
         finally:
             logger.info("Cleaning up resources...")
-            self.lpr.stop()
             cap.release()
-            if self.display:
-                cv2.destroyAllWindows()
+            cv2.destroyAllWindows()
+            self.lpr.stop()
+            self.stabilizer.stop()
+            
+            # --- Final Summary Report ---
+            print("\n" + "="*50)
+            print("         TRAFFIC VIOLATION SUMMARY REPORT")
+            print("="*50)
+            print(f" Video Source: {self.video_source}")
+            print(f" Total Unique Vehicles in ROI: {len(unique_vehicles_in_roi)}")
+            
+            # Identify vehicles that triggered violation at any point
+            violating_ids = [
+                tid for tid, s in self.analyzer.states.items() if s.violation_triggered
+            ]
+            
+            print(f" Total Violations Detected:    {len(violating_ids)}")
+            print("-" * 50)
+            if violating_ids:
+                print(f" {'ID':<10} | {'License Plate':<20}")
+                print("-" * 50)
+                for tid in violating_ids:
+                    plate = self.ocr_results.get(tid, "NOT_DETECTED")
+                    print(f" {tid:<10} | {plate:<20}")
+            else:
+                print(" No violations detected in this session.")
+            print("="*50 + "\n")

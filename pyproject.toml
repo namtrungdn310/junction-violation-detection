@@ -19,16 +19,20 @@ classifiers = [
 
 dependencies = [
     # ── AI / Deep Learning Backend ──────────────────────────────────────
-    "torch>=2.0.0",                # Tensor processing & CUDA backend for YOLO26
+    "torch==2.2.2",                # Stable CPU version for Windows
     "ultralytics",                 # YOLO26 end-to-end object detection API
     # ── OCR Pipeline ────────────────────────────────────────────────────
-    "paddleocr>=2.6.0",            # Multi-language OCR for license plate extraction
-    "paddlepaddle-gpu>=2.5.0",     # GPU-accelerated backend for PaddleOCR
+    "paddleocr>=2.7.0",            # Keep v2 API/runtime compatibility with current Paddle backend
+    "paddlepaddle>=2.6.0,<3.0.0",  # CPU-only backend for PaddleOCR
     # ── Inference Optimization ──────────────────────────────────────────
     "tensorrt>=8.6.1",             # NVIDIA TensorRT model compilation & inference
+    "onnx>=1.12.0,<2.0.0",         # ONNX export path for TensorRT->ONNX fallback
+    "onnxruntime>=1.16.0,<1.24.0", # ONNX Runtime backend used on CPU fallback (py310-compatible)
+    "lap>=0.5.12",                 # ByteTrack association dependency for ultralytics tracking
+    "protobuf>=3.20.2,<5.0.0",     # Compatible protobuf range
     # ── Computer Vision & Math ──────────────────────────────────────────
-    "opencv-python>=4.8.0",        # Video I/O, OSD rendering, optical flow
-    "numpy>=1.24.0",               # Matrix operations, polygon geometry, trajectory
+    "opencv-contrib-python==4.10.0.84",  # GUI-enabled OpenCV build for cv2.imshow on Windows
+    "numpy>=1.24.0,<2.0.0",        # Stay on Numpy 1.x for PaddlePaddle compatibility
 ]
 
 [project.optional-dependencies]

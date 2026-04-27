@@ -1,0 +1,122 @@
+2026-04-28 00:39:26,432 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:39:26,432 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:39:26,432 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:39:26,432 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:39:26,458 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:39:26,459 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:39:26,604 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:39:26,611 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:39:26,612 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:39:38,032 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 00:40:16,453 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 00:40:27,037 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 00:40:27,474 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 00:41:24,244 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:41:24,244 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:41:24,244 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:41:24,244 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:41:24,270 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:41:24,270 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:41:24,425 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:41:24,431 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:41:24,431 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:42:40,299 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:42:40,299 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:42:40,299 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:42:40,299 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:42:40,325 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:42:40,325 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:42:40,503 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:42:40,509 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:42:40,509 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:42:52,095 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 00:43:14,918 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:43:14,918 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:43:14,918 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:43:14,918 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:43:14,946 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:43:14,946 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:43:15,089 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:43:15,095 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:43:15,095 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:43:26,565 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 00:44:05,251 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 00:44:16,810 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 00:44:17,449 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 00:45:07,715 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:45:07,715 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:45:07,715 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:45:07,715 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:45:07,740 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:45:07,740 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:45:07,920 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:45:07,926 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:45:07,927 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:45:19,640 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 00:45:59,382 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 00:46:10,063 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 00:46:10,687 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 00:46:40,185 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:46:40,185 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:46:40,185 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:46:40,186 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:46:40,213 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:46:40,213 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:46:40,359 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:46:40,365 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:46:40,365 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:46:51,821 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 00:47:30,214 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 00:47:40,853 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 00:47:41,171 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 00:49:00,765 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:49:00,765 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:49:00,765 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:49:00,765 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:49:00,790 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:49:00,790 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:49:00,939 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:49:00,945 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:49:00,946 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:49:33,193 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:49:33,193 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:49:33,193 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:49:33,193 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:49:33,220 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:49:33,220 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:49:33,363 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:49:33,369 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:49:33,370 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:49:44,887 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 00:50:23,238 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-04-28 00:50:33,994 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 00:50:34,419 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 00:50:48,502 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:50:48,502 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:50:48,502 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:50:48,502 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:50:48,549 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:50:48,549 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:50:48,719 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:50:48,733 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:50:48,733 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test2.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:51:00,765 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 00:51:00,765 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 2, Dwell: 3.0s
+2026-04-28 00:51:12,916 - jvd.pipeline.engine - INFO - Interrupted by user.
+2026-04-28 00:51:12,916 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 00:51:13,225 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-04-28 00:51:20,969 - jvd.core.device - INFO - Device configured: CPU (no VRAM constraint applied)
+2026-04-28 00:51:20,969 - jvd.core.device - INFO - DeviceManager initialized → cpu
+2026-04-28 00:51:20,969 - jvd.inference.detector - INFO - CPU device detected; skipping TensorRT and using ONNX fallback.
+2026-04-28 00:51:20,969 - jvd.inference.detector - INFO - Using PyTorch CPU fallback for model: models\yolo26n.pt
+2026-04-28 00:51:20,994 - jvd.inference.detector - INFO - Backend: PyTorch (CPU FP32)
+2026-04-28 00:51:20,994 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-04-28 00:51:21,141 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-04-28 00:51:21,152 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-04-28 00:51:21,153 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test2.mp4 (720x1280 @ 30.0fps)
+2026-04-28 00:51:32,705 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-04-28 00:51:32,705 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 2, Dwell: 3.0s
+2026-04-28 00:52:10,680 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_1
+2026-04-28 00:52:11,970 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_2
+2026-04-28 00:52:28,858 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-04-28 00:52:29,746 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.

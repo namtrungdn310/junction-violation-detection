@@ -49,6 +49,7 @@ _STOP_VELOCITY_THRESH = 2.0      # pixels/frame
 _VIOLATION_TIME_SEC   = 3.0      # seconds
 _BLOCK_DIST_THRESH    = 50.0     # max vertical pixels to consider "blocked"
 _BLOCK_HIOU_THRESH    = 0.3      # min horizontal IoU to consider "blocked"
+_STOP_BUFFER_FRAMES   = 15       # frames to keep "stopped" status during tracking jitter
 
 
 class RegionOfInterest:
@@ -60,6 +61,14 @@ class RegionOfInterest:
         self._norm_pts = normalized_points
         self._scaled_pts: np.ndarray | None = None
         self._cached_dim: Tuple[int, int] | None = None
+
+    def update_points(self, normalized_points: List[Tuple[float, float]]) -> None:
+        """Update ROI points and clear caches."""
+        if len(normalized_points) < 3:
+            return
+        self._norm_pts = normalized_points
+        self._cached_dim = None
+        self._scaled_pts = None
 
     def get_polygon(self, width: int, height: int) -> np.ndarray:
         """Interpolate normalized coordinates to frame pixels."""
@@ -84,6 +93,9 @@ class TrackState:
     first_stop_time: float | None = None
     is_blocked: bool = False
     violation_triggered: bool = False
+    is_inside: bool = False  # NEW: Spatial membership flag
+    stop_buffer: int = 0
+    last_seen_frame: int = 0
 
 
 class ViolationAnalyzer:
@@ -117,6 +129,7 @@ class ViolationAnalyzer:
         frame_width: int,
         frame_height: int,
         emergency_ids: Set[int] | None = None,
+        matrix: np.ndarray | None = None,
     ) -> List[ViolationRecord]:
         """
         Process current frame events to find junction violations.
@@ -126,10 +139,8 @@ class ViolationAnalyzer:
             tracker: The VehicleTrackerManager containing velocity history.
             frame_width: Pixel width of the frame.
             frame_height: Pixel height of the frame.
-            emergency_ids: Set of track_ids permanently exempted (emergency vehicles).
-
-        Returns:
-            List of confirmed ViolationRecords for the current frame.
+            emergency_ids: Set of track_ids permanently exempted.
+            matrix: 2x3 transformation matrix (Current -> Anchor).
         """
         violations: List[ViolationRecord] = []
         current_stopped_events: List[DetectionEvent] = []
@@ -144,34 +155,59 @@ class ViolationAnalyzer:
             active_ids.add(ev.track_id)
 
             # Ground touch point
-            bottom_center = (ev.bbox.center[0], ev.bbox.y2)
+            px, py = ev.bbox.center[0], ev.bbox.y2
+            
+            # If camera moved, transform the point back to anchor coordinate system
+            if matrix is not None:
+                # Point transformation: p' = M * [x, y, 1]^T
+                pt = np.array([px, py, 1.0], dtype=np.float32)
+                transformed_pt = matrix @ pt
+                px, py = transformed_pt[0], transformed_pt[1]
 
-            # Ignore vehicles outside the yellow box
-            if not self.roi.contains(bottom_center, frame_width, frame_height):
-                self.states.pop(ev.track_id, None)
+            if ev.track_id not in self.states:
+                self.states[ev.track_id] = TrackState()
+            
+            state = self.states[ev.track_id]
+            state.last_seen_frame = ev.frame_id
+
+            # Ignore vehicles outside the yellow box (using anchor-aligned coords)
+            # Use a margin to be more forgiving for vehicles on the edge or entering from side
+            # If already in violation, use a larger margin (30px) to prevent flicker at edges
+            margin = 30 if state.violation_triggered else 10
+            is_inside = self.roi.contains((px, py), frame_width, frame_height)
+            
+            if not is_inside:
+                # Check with margin (simple box approximation for speed)
+                poly = self.roi.get_polygon(frame_width, frame_height)
+                dist = cv2.pointPolygonTest(poly, (px, py), measureDist=True)
+                if dist >= -margin: # Negative distance means outside
+                    is_inside = True
+
+            state.is_inside = is_inside
+            
+            if not is_inside:
+                # If they truly leave, we can keep the state for a bit but reset timers
+                state.first_stop_time = None
+                state.is_blocked = False
                 continue
 
             velocity = tracker.get_velocity(ev.track_id)
             if self._is_stopped(velocity):
+                state.stop_buffer = _STOP_BUFFER_FRAMES
                 current_stopped_events.append(ev)
-                if ev.track_id not in self.states:
-                    self.states[ev.track_id] = TrackState()
-                
-                state = self.states[ev.track_id]
                 if state.first_stop_time is None:
                     state.first_stop_time = ev.timestamp
             else:
-                # Moving: reset stop state and exemptions
-                if ev.track_id in self.states:
-                    state = self.states[ev.track_id]
+                # Use buffer to smooth out temporary movement or tracking jitter
+                if state.stop_buffer > 0:
+                    state.stop_buffer -= 1
+                    current_stopped_events.append(ev)
+                else:
                     state.first_stop_time = None
                     state.is_blocked = False
 
         # 2. Congestion Reasoning (Forward Collision Check)
         for ev in current_stopped_events:
-            if ev.track_id is None:
-                continue
-            
             tid = ev.track_id
             state = self.states[tid]
             is_blocked = False
@@ -180,8 +216,6 @@ class ViolationAnalyzer:
                 if other_ev.track_id == tid:
                     continue
 
-                # Project search area "upwards" in the image (smaller y values)
-                # Front vehicle is blocking if its bottom (y2) is just above our top (y1)
                 if other_ev.bbox.y2 <= ev.bbox.y1:
                     dist = ev.bbox.y1 - other_ev.bbox.y2
                     if dist < _BLOCK_DIST_THRESH:
@@ -193,9 +227,11 @@ class ViolationAnalyzer:
             state.is_blocked = is_blocked
 
             # 3. State Machine & Violation Generation
-            if not is_blocked and state.first_stop_time is not None:
+            if state.violation_triggered:
+                pass
+            elif not is_blocked and state.first_stop_time is not None:
                 dwell_time = ev.timestamp - state.first_stop_time
-                if dwell_time >= _VIOLATION_TIME_SEC and not state.violation_triggered:
+                if dwell_time >= _VIOLATION_TIME_SEC:
                     state.violation_triggered = True
                     violations.append(ViolationRecord(
                         event=ev,
@@ -203,11 +239,16 @@ class ViolationAnalyzer:
                         violation_type="yellow_box_stop"
                     ))
                     logger.info(
-                        f"Violation detected! Track ID: {tid}, Dwell: {dwell_time:.1f}s"
+                        f"Violation confirmed! Track ID: {tid}, Dwell: {dwell_time:.1f}s"
                     )
 
-        # 4. Clean up stale tracked vehicles from memory
-        stale_keys = [tid for tid in self.states if tid not in active_ids]
+        # 4. Clean up stale tracked vehicles from memory (Defer deletion)
+        # We wait _MAX_STALE_FRAMES before deleting to handle detection hiccups
+        current_frame = events[0].frame_id if events else 0
+        stale_keys = [
+            tid for tid, s in self.states.items() 
+            if (current_frame - s.last_seen_frame) > 120 # 4 seconds grace period
+        ]
         for tid in stale_keys:
             del self.states[tid]
 

@@ -20,17 +20,12 @@ from typing import Dict, Optional
 import cv2
 import numpy as np
 
-try:
-    from paddleocr import PaddleOCR
-except ImportError:  # pragma: no cover
-    PaddleOCR = None
-
 logger = logging.getLogger(__name__)
 
 # Vietnamese LP standard regex:
-# e.g., 43A-12345, 29H1-12345
-# Allows optional hyphen between region/series and digits.
-_LP_REGEX = re.compile(r"^[0-9]{2}[A-Z]{1,2}[0-9]?\-?[0-9]{4,5}$")
+# e.g., 43A-12345, 29H1-12345, 92-CA13144
+# Allows optional hyphens between region, series, and digits.
+_LP_REGEX = re.compile(r"^[0-9]{2}\-?[A-Z]{1,2}[0-9]?\-?[0-9]{4,5}$")
 
 
 class LicensePlateRecognizer:
@@ -75,12 +70,21 @@ class LicensePlateRecognizer:
     @staticmethod
     def _run(q: mp.Queue, results: Dict[int, str], stop_event: mp.Event) -> None:
         """The entry point for the child process."""
-        if PaddleOCR is None:  # pragma: no cover
-            logger.error("PaddleOCR not installed. Process terminating.")
+        try:
+            from paddleocr import PaddleOCR
+        except Exception as exc:  # pragma: no cover
+            logger.error(f"PaddleOCR unavailable. OCR worker disabled: {exc}")
             return
 
-        # Force CPU to isolate VRAM for YOLO26
-        ocr = PaddleOCR(use_angle_cls=False, lang="en", use_gpu=False, show_log=False)
+        # Force CPU to isolate VRAM for YOLO26.
+        try:
+            try:
+                ocr = PaddleOCR(use_angle_cls=False, lang="en", use_gpu=False, show_log=False)
+            except TypeError:
+                ocr = PaddleOCR(lang="en", device="cpu")
+        except Exception as exc:  # pragma: no cover
+            logger.error(f"PaddleOCR initialization failed, OCR worker disabled: {exc}")
+            return
 
         while not stop_event.is_set():
             try:
@@ -88,12 +92,16 @@ class LicensePlateRecognizer:
             except queue.Empty:
                 continue
 
-            text = LicensePlateRecognizer._process_crop(ocr, crop)
+            try:
+                text = LicensePlateRecognizer._process_crop(ocr, crop, track_id)
+            except Exception as exc:  # pragma: no cover
+                logger.warning(f"OCR inference failed for track {track_id}: {exc}")
+                continue
             if text is not None:
                 results[track_id] = text
 
     @staticmethod
-    def _process_crop(ocr, crop: np.ndarray) -> Optional[str]:
+    def _process_crop(ocr, crop: np.ndarray, track_id: int) -> Optional[str]:
         """
         Pre-process the image, apply aspect ratio slicing, and run OCR.
         """
@@ -103,33 +111,21 @@ class LicensePlateRecognizer:
             
         ratio = w / h
 
-        # Pre-processing: Grayscale -> Gaussian Blur -> Otsu Thresholding
-        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-
-        # Aspect Ratio Heuristics
-        if 3.5 < ratio < 4.5:
-            # 1-line rectangular plate (commercial vehicles)
-            text = LicensePlateRecognizer._read_text(ocr, thresh)
-        elif 0.8 < ratio < 1.4:
-            # 2-line square plate (motorcycles / personal cars)
-            mid = h // 2
-            top_half = thresh[:mid, :]
-            bot_half = thresh[mid:, :]
-            top_txt = LicensePlateRecognizer._read_text(ocr, top_half)
-            bot_txt = LicensePlateRecognizer._read_text(ocr, bot_half)
-            # Combine lines with standard hyphen
-            text = f"{top_txt}-{bot_txt}"
-        else:
-            # Fallback for distorted bounding boxes
-            text = LicensePlateRecognizer._read_text(ocr, thresh)
+        # Run OCR on the full original color crop
+        text = LicensePlateRecognizer._read_text(ocr, crop)
 
         # Regex Syntax Validation
         # Remove spaces and dots that OCR might wrongly infer
-        cleaned = text.replace(" ", "").replace(".", "").upper()
-        if _LP_REGEX.match(cleaned):
-            return cleaned
+        cleaned = text.replace(" ", "").replace(".", "").replace("-", "").upper()
+        
+        # Vietnamese plate format: 2 digits (province) + (1 letter + 1 digit OR 1-2 letters) + digits
+        # Example: 43F161888 -> 43F1-61888, 92CA13144 -> 92CA-13144
+        # Logic: Prioritize Letter+Digit series (F1, G1) over 2-letter series (CA, AA). 4-5 digits at end.
+        match = re.match(r"^([0-9]{2}(?:[A-Z][0-9]|[A-Z]{1,2}))([0-9]{4,5})$", cleaned)
+        if match:
+            formatted = f"{match.group(1)}-{match.group(2)}"
+            return formatted
+            
         return None
 
     @staticmethod

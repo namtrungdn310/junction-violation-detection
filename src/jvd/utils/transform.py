@@ -36,7 +36,7 @@ _LK_PARAMS = dict(
     maxLevel=3,
     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01),
 )
-_ORB_N_FEATURES = 500
+_ORB_N_FEATURES = 2000
 
 
 # ── Trajectory record ─────────────────────────────────────────────────────────
@@ -102,28 +102,6 @@ def estimate_transform(
 ) -> Transform:
     """
     Estimate the 2-D Affine transform between two consecutive frames.
-
-    Mathematics
-    ~~~~~~~~~~~
-    Lucas–Kanade pyramid optical flow computes per-point displacement:
-        p_curr ≈ p_prev + v,   where v = (vx, vy)
-
-    ``cv2.estimateAffinePartial2D`` then solves (RANSAC, max 2000 iter):
-        min Σ_i ‖ A · p_prev_i − p_curr_i ‖²
-
-    returning the rigid-body Affine matrix:
-        A = [cos θ   −sin θ   tx]
-            [sin θ    cos θ   ty]
-
-    where (tx, ty) is translation and θ is the in-plane rotation angle.
-
-    Args:
-        prev_gray: Greyscale reference frame (H, W) uint8.
-        curr_gray: Greyscale current frame   (H, W) uint8.
-        prev_pts:  Keypoints from ``extract_keypoints`` on ``prev_gray``.
-
-    Returns:
-        2×3 float64 Affine matrix, or identity matrix if estimation fails.
     """
     identity = np.eye(2, 3, dtype=np.float64)
 
@@ -133,19 +111,48 @@ def estimate_transform(
     curr_pts, status, _ = cv2.calcOpticalFlowPyrLK(
         prev_gray, curr_gray, prev_pts, None, **_LK_PARAMS
     )
-    if status is None:
+    if status is None or np.sum(status) < 4:
         return identity
 
     good_prev = prev_pts[status.ravel() == 1]
     good_curr = curr_pts[status.ravel() == 1]
 
-    if len(good_prev) < 4:
-        return identity
-
     M, _ = cv2.estimateAffinePartial2D(
         good_prev, good_curr,
         method=cv2.RANSAC,
-        ransacReprojThreshold=3.0,
+        ransacReprojThreshold=2.0, # Tighter threshold for accuracy
+    )
+    return M if M is not None else identity
+
+
+def get_anchor_compensation(
+    anchor_gray: Frame,
+    curr_gray: Frame,
+    anchor_pts: Keypoints
+) -> Transform:
+    """
+    Directly calculate the transform from current frame back to anchor frame.
+    This eliminates drift entirely.
+    """
+    identity = np.eye(2, 3, dtype=np.float64)
+    if anchor_pts is None or len(anchor_pts) < 4:
+        return identity
+
+    curr_pts, status, _ = cv2.calcOpticalFlowPyrLK(
+        anchor_gray, curr_gray, anchor_pts, None, **_LK_PARAMS
+    )
+    
+    if status is None or np.sum(status) < 10: # Higher threshold for anchor
+        return identity
+
+    good_anchor = anchor_pts[status.ravel() == 1]
+    good_curr = curr_pts[status.ravel() == 1]
+
+    # Find transform from CURRENT to ANCHOR (inverse mapping)
+    M, _ = cv2.estimateAffinePartial2D(
+        good_curr, good_anchor,
+        method=cv2.RANSAC,
+        ransacReprojThreshold=2.0,
     )
     return M if M is not None else identity
 

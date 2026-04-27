@@ -31,11 +31,12 @@ from jvd.inference.compiler import (
 
 logger = logging.getLogger(__name__)
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── Model Config ──────────────────────────────────────────────────────────────
+_IMGSZ             = 1024        # High resolution for distant or side-by-side objects
+_CONF_THRESH       = 0.35        # Higher to avoid ghost boxes
+_IOU_THRESH        = 0.3         # Strict NMS to prevent double boxes
 _COCO_VEHICLE_IDS  = [2, 3, 5, 7]        # car, motorcycle, bus, truck
-_CONF_THRESHOLD    = 0.4
 _CACHE_FLUSH_INTERVAL = 10_000           # frames between empty_cache() calls
-_IMGSZ             = 640
 
 
 class ObjectDetector:
@@ -51,7 +52,7 @@ class ObjectDetector:
         self,
         model_path: str | Path,
         device: torch.device,
-        conf: float = _CONF_THRESHOLD,
+        conf: float = _CONF_THRESH,
         imgsz: int = _IMGSZ,
     ) -> None:
         self._model_path = Path(model_path)
@@ -69,41 +70,43 @@ class ObjectDetector:
 
         Cascade: TRT .engine -> Compile TRT -> ONNX -> PipelineConfigError
         """
-        # ── Attempt 1 & 2: TensorRT ──────────────────────────────────────────
-        try:
-            engine_path = self._model_path.with_suffix(".engine")
-            if not engine_path.exists():
-                engine_path = compile_to_tensorrt(
-                    self._model_path, self._imgsz, workspace_gb=2
+        # ── Attempt 1 & 2: TensorRT (GPU-only) ──────────────────────────────
+        if self._device.type == "cuda":
+            try:
+                engine_path = self._model_path.with_suffix(".engine")
+                if not engine_path.exists():
+                    engine_path = compile_to_tensorrt(
+                        self._model_path, self._imgsz, workspace_gb=2
+                    )
+                logger.info(f"Loading TensorRT engine: {engine_path}")
+                self._model = YOLO(str(engine_path), task="detect")
+                self._format = InferenceFormat.TENSORRT
+                logger.info("Backend: TensorRT (FP16, static alloc)")
+                return
+
+            except Exception as trt_err:
+                logger.warning(
+                    f"TensorRT load/compile failed ({type(trt_err).__name__}: {trt_err}). "
+                    "Attempting ONNX fallback …"
                 )
-            logger.info(f"Loading TensorRT engine: {engine_path}")
-            self._model  = YOLO(str(engine_path))
-            self._format = InferenceFormat.TENSORRT
-            logger.info("Backend: TensorRT (FP16, static alloc)")
-            return
+        else:
+            logger.info("CPU device detected; skipping TensorRT and using ONNX fallback.")
 
-        except Exception as trt_err:
-            logger.warning(
-                f"TensorRT load/compile failed ({type(trt_err).__name__}: {trt_err}). "
-                "Attempting ONNX fallback …"
-            )
-
-        # ── Attempt 3: ONNX ──────────────────────────────────────────────────
-        try:
-            onnx_path = export_to_onnx(self._model_path, self._imgsz)
-            logger.info(f"Loading ONNX model: {onnx_path}")
-            self._model  = YOLO(str(onnx_path))
-            self._format = InferenceFormat.ONNX
-            logger.info("Backend: ONNX (FP16, ONNXRuntime-GPU)")
-            return
-
-        except Exception as onnx_err:
-            logger.error(f"ONNX fallback also failed: {onnx_err}")
+        # ── Attempt 4: PyTorch Fallback (CPU-only) ─────────────────────────────
+        if self._device.type == "cpu":
+            try:
+                logger.info(f"Using PyTorch CPU fallback for model: {self._model_path}")
+                self._model = YOLO(str(self._model_path), task="detect")
+                self._format = InferenceFormat.PYTORCH
+                logger.info("Backend: PyTorch (CPU FP32)")
+                return
+            except Exception as pt_err:
+                logger.error(f"PyTorch fallback failed: {pt_err}")
 
         # ── No viable backend ─────────────────────────────────────────────────
         raise PipelineConfigError(
-            f"Cannot load model '{self._model_path}' via TensorRT or ONNX. "
-            "Refusing to use PyTorch FP32 to avoid VRAM OOM on < 3 GB GPU."
+            f"Cannot load model '{self._model_path}' via TensorRT, ONNX or PyTorch. "
+            "Check your environment and model path."
         )
 
     # ── Inference ─────────────────────────────────────────────────────────────
@@ -145,10 +148,12 @@ class ObjectDetector:
         results = self._model.predict(
             source=frame,
             conf=self._conf,
+            iou=self._iou,               # Explicitly pass IOU threshold
             classes=_COCO_VEHICLE_IDS,
             imgsz=self._imgsz,
             verbose=False,
             device=self._device,
+            agnostic_nms=True,           # Merge boxes regardless of class
         )
 
         return self._parse_results(results, frame_id, timestamp)
@@ -177,6 +182,15 @@ class ObjectDetector:
                 conf     = float(boxes.conf[i])
                 coco_id  = int(boxes.cls[i])
                 vehicle  = VehicleClass.from_coco_id(coco_id)
+                
+                # --- Advanced Filtering: Anti-Human BBox Logic ---
+                # A vertical box (height >> width) is likely a person, not a vehicle.
+                w_box = x2 - x1
+                h_box = y2 - y1
+                if w_box > 0 and (h_box / w_box) > 2.0:
+                    # Discard if it looks like a standing person
+                    continue
+
                 event = DetectionEvent(
                     frame_id=frame_id,
                     timestamp=timestamp,

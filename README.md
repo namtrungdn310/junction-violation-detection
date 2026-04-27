@@ -4,7 +4,7 @@
 
 ## Các Chức Năng Nổi Bật (Phases 1-8)
 
-Toàn bộ hệ thống được lập trình theo thiết kế Hướng Đối Tượng (OOP), phân tách module (MVC) đảm bảo tối đa hóa hiệu suất phần cứng (RAM < 3GB) và tính bảo trì cao (LOC < 200/file).
+Toàn bộ hệ thống được lập trình theo thiết kế Hướng Đối Tượng (OOP), phân tách module (MVC) đảm bảo tối đa hóa hiệu suất phần cứng và tính bảo trì cao (LOC < 200/file).
 
 - **`VideoStabilizer` (Đa Luồng CPU)**: Chống rung video quang học dùng SIFT & ORB.
 - **`ObjectDetector` (YOLO26 & TensorRT)**: Tối ưu VRAM bằng cơ chế cascade fallback (Engine -> ONNX).
@@ -36,44 +36,65 @@ uv sync
 
 ## Hướng Dẫn Kiểm Thử Bằng Video Thực Tế
 
-Bạn có thể đưa các video thử nghiệm của mình vào cùng thư mục dự án (ví dụ `test1.mp4`).
+Hệ thống hỗ trợ tự động lưu và nạp cấu hình ROI cho từng video. Các video thử nghiệm nên được đặt trong thư mục `data/videos/`.
 
 **Cú pháp khởi chạy Pipeline:**
 
 ```bash
-uv run run_pipeline.py --video "ten_video_cua_ban.mp4"
+uv run run_pipeline.py --video "data/videos/video_test1.mp4"
+# Nếu máy không có CUDA/NVIDIA, dùng CPU:
+# uv run run_pipeline.py --video "data/videos/video_test1.mp4" --device cpu
 ```
 
 **Các tham số mở rộng (Optional):**
 
-- `--model`: Trỏ đường dẫn đến tệp trọng số YOLO. Mặc định `yolov8n.pt` (Sẽ tự tải nếu không có).
+- `--model`: Trỏ đường dẫn đến tệp trọng số YOLO. Mặc định `models/yolo26n.pt`.
+- `--device`: Thiết bị suy luận `gpu` hoặc `cpu`. Mặc định `gpu`.
+- `--vram-limit`: Giới hạn VRAM (GB) khi dùng GPU. Mặc định `2.8`.
+- `--enable-emergency`: Bật logic miễn trừ xe ưu tiên (mặc định **tắt**).
 - `--export-dir`: Thư mục lưu trữ bằng chứng. Mặc định là `data/exports`.
-- `--no-display`: Thêm cờ này nếu chạy trên server không có màn hình (Headless), tắt luồng `cv2.imshow`.
+- `--no-display`: Chế độ Headless, tắt cửa sổ hiển thị.
 
 **Tương tác Runtime:**
 - Nhấn phím **`q`** để dừng tiến trình ghi hình và kết xuất an toàn hệ thống OCR.
 
 ## Quản Lý Dữ Liệu Bằng Chứng (Evidence Package)
 
-Bất kì khi nào một phương tiện dừng trong vạch quá 3 giây (Và không bị kẹt xe/không là xe ưu tiên), module `ViolationReporter` sẽ xuất bằng chứng tại thư mục `data/exports/`:
+Bất kì khi nào một phương tiện dừng trong vạch quá 3 giây (và không bị kẹt xe), module `ViolationReporter` sẽ xuất bằng chứng tại thư mục `data/exports/`:
 
 ```
 data/exports/
-├── violation_1_1684345.mp4    # Video 10 giây (5 giây trước, 5 giây sau)
-├── violation_1_1684345_wide.jpg # Ảnh toàn cảnh khi bắt đầu đè vạch
-├── violation_1_1684345_crop.jpg # Ảnh cắt cận cảnh vào phương tiện/biển số
-└── violation_1_1684345.json   # JSON hồ sơ vi phạm (Camera ID, Timestamp, Biển Số...)
+└── video_test1/               # Phân loại theo tên video nguồn
+    └── violation_1/           # Thư mục riêng cho mỗi vụ vi phạm
+        ├── violation_1.mp4    # Video bằng chứng (15 giây)
+        ├── violation_1.json   # Hồ sơ pháp lý (Biển số, tọa độ, timestamp)
+        ├── wide_shot.jpg      # Ảnh toàn cảnh lúc bắt đầu đè vạch
+        └── license_plate.jpg  # Ảnh cận cảnh biển số đã nhận diện
 ```
 
 ## Kiến Trúc Core
 
 ```text
 src/jvd/
-├── core/        # Quản lý thiết bị GPU cứng và cấu trúc Data Models
-├── inference/   # Biên dịch TensorRT, Tracker (ByteTrack), và LPR (PaddleOCR)
-├── utils/       # Ổn định hình ảnh, Camera Logging
-└── pipeline/    # Giao điểm thuật toán: Analyzer, Emergency, OSD, Reporter & Engine
+├── core/        # Quản lý thiết bị GPU và cấu trúc Data Models
+├── inference/   # Detector (YOLO), Tracker (ByteTrack), và LPR (PaddleOCR)
+├── utils/       # Ổn định hình ảnh (Stabilizer), ROI Helper
+└── pipeline/    # Logic chính: Analyzer, Emergency, OSD, Reporter & Engine
+
+Cấu trúc tệp tin dự án:
+├── configs/     # Cấu hình ByteTrack và ROI (roi_configs.json)
+├── data/
+│   ├── exports/ # Kết quả vi phạm (Phân cấp theo Video/Violation_ID)
+│   └── videos/  # Thư mục chứa các video đầu vào
+├── models/      # Chứa các tệp trọng số AI (.pt, .onnx)
+├── outputs/
+│   └── logs/    # Lưu trữ Log hệ thống (system.log) để hậu kiểm
+├── run_pipeline.py # Script khởi chạy chính
+└── pyproject.toml  # Quản lý phụ thuộc bằng UV
 ```
+
+---
+*Dự án được phát triển phục vụ mục đích Nghiên cứu Khoa học (NCKH) về lĩnh vực Giao thông thông minh (ITS).*
 
 ## Chạy Bộ Kiểm Thử (Unit Tests)
 
