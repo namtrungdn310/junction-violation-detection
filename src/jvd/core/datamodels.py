@@ -44,6 +44,29 @@ class VehicleClass(Enum):
         }
         return mapping.get(label.strip().lower(), cls.UNKNOWN)
 
+    @classmethod
+    def from_coco_id(cls, coco_id: int) -> VehicleClass:
+        """
+        Map a COCO dataset integer class index to a VehicleClass enum.
+
+        COCO indices used by this system
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        | ID |  COCO Label  | VehicleClass |
+        |----|--------------|--------------|
+        |  2 | car          | CAR          |
+        |  3 | motorcycle   | MOTORBIKE    |
+        |  5 | bus          | BUS          |
+        |  7 | truck        | TRUCK        |
+
+        Args:
+            coco_id: Integer class index from YOLO / COCO dataset.
+
+        Returns:
+            Matching VehicleClass or UNKNOWN for unmapped IDs.
+        """
+        _COCO_MAP = {2: cls.CAR, 3: cls.MOTORBIKE, 5: cls.BUS, 7: cls.TRUCK}
+        return _COCO_MAP.get(coco_id, cls.UNKNOWN)
+
 
 @dataclass(frozen=True, slots=True)
 class BoundingBox:
