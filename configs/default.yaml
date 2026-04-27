@@ -1,0 +1,37 @@
+# Default Configuration — Junction Violation Detection
+# ====================================================
+
+system:
+  device: "gpu"                    # "gpu" or "cpu"
+  vram_limit_gb: 2.8               # Hard VRAM cap (GB)
+  log_level: "INFO"
+
+detection:
+  model_path: "models/yolo26n.pt"  # YOLO26 nano for edge devices
+  confidence_threshold: 0.45
+  iou_threshold: 0.50
+  target_classes:
+    - car
+    - motorbike
+    - truck
+    - bus
+
+tracking:
+  max_age: 30                      # Frames before a lost track is deleted
+  min_hits: 3                      # Minimum detections to confirm a track
+  iou_threshold: 0.30
+
+violation:
+  dwell_time_threshold: 3.0        # Seconds stopped on yellow box → violation
+  roi_polygon: []                  # Will be set per-camera deployment
+
+ocr:
+  enabled: true
+  language: "vi"                   # Vietnamese license plates
+  det_model_dir: "models/paddle_det"
+  rec_model_dir: "models/paddle_rec"
+
+output:
+  save_evidence: true
+  evidence_dir: "outputs/violations"
+  log_dir: "outputs/logs"
