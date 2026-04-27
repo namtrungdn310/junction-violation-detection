@@ -116,6 +116,7 @@ class ViolationAnalyzer:
         tracker: VehicleTrackerManager,
         frame_width: int,
         frame_height: int,
+        emergency_ids: Set[int] | None = None,
     ) -> List[ViolationRecord]:
         """
         Process current frame events to find junction violations.
@@ -125,6 +126,7 @@ class ViolationAnalyzer:
             tracker: The VehicleTrackerManager containing velocity history.
             frame_width: Pixel width of the frame.
             frame_height: Pixel height of the frame.
+            emergency_ids: Set of track_ids permanently exempted (emergency vehicles).
 
         Returns:
             List of confirmed ViolationRecords for the current frame.
@@ -132,10 +134,11 @@ class ViolationAnalyzer:
         violations: List[ViolationRecord] = []
         current_stopped_events: List[DetectionEvent] = []
         active_ids: Set[int] = set()
+        emergency_ids = emergency_ids or set()
 
         # 1. Filter events & Kinematic Analysis
         for ev in events:
-            if ev.track_id is None:
+            if ev.track_id is None or ev.track_id in emergency_ids:
                 continue
             
             active_ids.add(ev.track_id)
