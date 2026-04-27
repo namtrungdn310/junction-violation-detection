@@ -3,32 +3,8 @@ detector.py — YOLO26 object detector with TensorRT / ONNX runtime routing.
 
 Layer: inference/  (imports from core/ and inference/compiler)
 
-Runtime loading strategy (nested try-except fault tolerance)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Try loading pre-compiled TensorRT .engine
-        ↓ EngineBindingError / version mismatch ?
-2. Try compiling .pt → .engine via compile_to_tensorrt()
-        ↓ RuntimeError / CUDA OOM ?
-3. Try loading / exporting ONNX via export_to_onnx()
-        ↓ Still fails ?
-4. Raise PipelineConfigError — no silent degradation to slow FP32 PyTorch
-
-VRAM cache management
-~~~~~~~~~~~~~~~~~~~~~
-PyTorch's CUDA allocator caches freed memory blocks to avoid round-trips
-to the driver.  Over a long inference session (hours) this cache grows and
-can cause spurious OOM errors.  ``torch.cuda.empty_cache()`` is called
-every ``_CACHE_FLUSH_INTERVAL`` frames (10 000) to safely return cached
-blocks to the driver without disrupting the inference pipeline.
-
-COCO vehicle classes targeted
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-| COCO ID | Label      | VehicleClass |
-|---------|------------|--------------|
-|    2    | car        | CAR          |
-|    3    | motorcycle | MOTORBIKE    |
-|    5    | bus        | BUS          |
-|    7    | truck      | TRUCK        |
+Loads TensorRT .engine by default, fallback to compile .pt -> .engine,
+then fallback to ONNX. Maintains VRAM cache with periodic flushes.
 """
 
 from __future__ import annotations
@@ -63,16 +39,11 @@ _IMGSZ             = 640
 
 
 class ObjectDetector:
-    """
-    YOLO26 inference engine with automatic TensorRT → ONNX fallback.
-
-    The constructor does NOT load the model; call ``load()`` explicitly
-    so the caller can control the exact moment VRAM is committed.
+    """YOLO26 inference engine with automatic TensorRT → ONNX fallback.
 
     Usage::
-
         detector = ObjectDetector("models/yolo26n.pt", device=dm.device)
-        detector.load()                           # one-time model load
+        detector.load()
         events = detector.predict(frame, frame_id=42, timestamp=1.5)
     """
 
@@ -94,14 +65,9 @@ class ObjectDetector:
     # ── Model loading ─────────────────────────────────────────────────────────
 
     def load(self) -> None:
-        """
-        Load the inference model using the best available backend.
+        """Load the inference model using the best available backend.
 
-        Loading cascade (nested try-except fault tolerance):
-        1. TensorRT .engine  — fastest, hardware-locked
-        2. Compile .pt → .engine — if no engine cached yet
-        3. ONNX via ONNXRuntime — if TRT compilation fails
-        4. PipelineConfigError — no PyTorch FP32 fallback (OOM risk)
+        Cascade: TRT .engine -> Compile TRT -> ONNX -> PipelineConfigError
         """
         # ── Attempt 1 & 2: TensorRT ──────────────────────────────────────────
         try:
@@ -227,11 +193,19 @@ class ObjectDetector:
     # ── Diagnostics ───────────────────────────────────────────────────────────
 
     @property
-    def backend(self) -> InferenceFormat:
-        """Active inference backend (TensorRT / ONNX / PyTorch)."""
-        return self._format
+    def backend(self) -> InferenceFormat: return self._format
 
     @property
-    def is_ready(self) -> bool:
-        """True if load() has been called successfully."""
-        return self._model is not None
+    def is_ready(self) -> bool: return self._model is not None
+
+    @property
+    def raw_model(self): return self._model
+
+    @property
+    def device(self) -> "torch.device": return self._device
+
+    @property
+    def conf(self) -> float: return self._conf
+
+    @property
+    def imgsz(self) -> int: return self._imgsz

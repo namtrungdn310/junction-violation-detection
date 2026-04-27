@@ -6,18 +6,23 @@ but never from pipeline/.
 
 Public API
 ~~~~~~~~~~
-- ObjectDetector   : YOLO26 detector with TensorRT / ONNX runtime routing
-- InferenceFormat  : Enum describing the active backend
-- compile_to_tensorrt : Cross-compile .pt → TensorRT .engine
-- export_to_onnx      : Export .pt → ONNX FP16 fallback
+- ObjectDetector        : YOLO26 detector with TensorRT / ONNX runtime routing
+- InferenceFormat       : Enum describing the active backend
+- compile_to_tensorrt   : Cross-compile .pt → TensorRT .engine
+- export_to_onnx        : Export .pt → ONNX FP16 fallback
+- ByteTrackSession      : Object tracking using ByteTrack
+- VehicleTrackerManager : Trajectory history and management
 """
 
 from jvd.inference.compiler import InferenceFormat, compile_to_tensorrt, export_to_onnx
 from jvd.inference.detector import ObjectDetector
+from jvd.inference.tracker import ByteTrackSession, VehicleTrackerManager
 
 __all__ = [
     "ObjectDetector",
     "InferenceFormat",
     "compile_to_tensorrt",
     "export_to_onnx",
+    "ByteTrackSession",
+    "VehicleTrackerManager",
 ]

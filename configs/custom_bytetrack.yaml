@@ -1,0 +1,34 @@
+# custom_bytetrack.yaml
+# =====================
+# ByteTrack configuration override for Vietnamese urban intersection tracking.
+#
+# Rationale for each parameter (differs from ultralytics defaults):
+#
+#   track_high_thresh: 0.5  (default: 0.6)
+#     Lowered to capture small motorcycles that score 0.5–0.6 on YOLO.
+#     Motorcycles are the dominant violation vehicle type in Vietnam.
+#
+#   track_low_thresh: 0.1  (default: 0.1)
+#     Retains all detections above 0.1 for the BYTE second-association pass.
+#     These low-confidence boxes recover occluded vehicles using Kalman IoU.
+#
+#   new_track_thresh: 0.6  (default: 0.7)
+#     Prevents noise-triggered ghost tracklets from optical reflections on
+#     wet road surfaces or lamp posts at night.
+#
+#   track_buffer: 60  (default: 30)
+#     Keeps a lost tracklet alive for 60 frames (≈ 2 seconds at 30 fps).
+#     Allows a vehicle fully hidden behind a bus to re-emerge with the same
+#     track_id, preventing ID-switch false violations.
+#
+#   match_thresh: 0.8  (default: 0.8)
+#     High IoU tolerance to handle sudden deceleration/acceleration at
+#     junction stop lines where position changes rapidly between frames.
+
+tracker_type: bytetrack
+
+track_high_thresh: 0.5     # Min confidence to initialise a new high-quality tracklet
+track_low_thresh:  0.1     # Min confidence to participate in BYTE second association
+new_track_thresh:  0.6     # Min confidence for a detection to spawn a fresh track
+track_buffer:      60      # Max frames a lost track is kept before deletion
+match_thresh:      0.8     # IoU threshold for Kalman-predicted ↔ detection matching
