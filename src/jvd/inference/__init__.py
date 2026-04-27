@@ -12,10 +12,12 @@ Public API
 - export_to_onnx        : Export .pt → ONNX FP16 fallback
 - ByteTrackSession      : Object tracking using ByteTrack
 - VehicleTrackerManager : Trajectory history and management
+- LicensePlateRecognizer: Multiprocessed OCR
 """
 
 from jvd.inference.compiler import InferenceFormat, compile_to_tensorrt, export_to_onnx
 from jvd.inference.detector import ObjectDetector
+from jvd.inference.ocr import LicensePlateRecognizer
 from jvd.inference.tracker import ByteTrackSession, VehicleTrackerManager
 
 __all__ = [
@@ -25,4 +27,5 @@ __all__ = [
     "export_to_onnx",
     "ByteTrackSession",
     "VehicleTrackerManager",
+    "LicensePlateRecognizer",
 ]
