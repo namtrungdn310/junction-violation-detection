@@ -1,11 +1,10 @@
 """
-osd.py — On-Screen Display (OSD) Renderer.
+osd.py — Render thông tin hiển thị trên màn hình (OSD).
 
 Layer: pipeline/
 
-Implements the MVC View layer to draw violation bounding boxes,
-yellow-box polygons with Alpha Blending, and state labels
-(EMERGENCY, BLOCKED_BY_TRAFFIC, VIOLATION).
+Vẽ bounding box, đa giác vùng vàng và nhãn trạng thái
+(ƯU TIÊN, BỊ CHẶN, VI PHẠM) lên video.
 """
 
 from __future__ import annotations
@@ -18,14 +17,14 @@ from jvd.pipeline.analyzer import RegionOfInterest, TrackState
 
 
 class OSDRenderer:
-    """Renders visual overlays onto the video frame."""
+    """Render các lớp phủ trực quan lên video frame."""
 
     def __init__(self) -> None:
-        # BGR Colors
+        # Màu BGR
         self.COLOR_GREEN   = (0, 255, 0)
         self.COLOR_RED     = (0, 0, 255)
         self.COLOR_BLUE    = (255, 0, 0)
-        self.COLOR_YELLOW  = (153, 255, 255)  # Light yellow
+        self.COLOR_YELLOW  = (153, 255, 255)  # Vàng nhạt
 
     def draw(
         self,
@@ -41,19 +40,19 @@ class OSDRenderer:
         total_frames: int = 0
     ) -> np.ndarray:
         """
-        Draw analytical states and ROI onto a copy of the frame with updated UI.
+        Vẽ trạng thái phân tích và ROI lên bản sao của frame.
         """
         output = frame.copy()
         h, w = output.shape[:2]
 
-        # 1. Global OSD (FPS & Frame Counter)
+        # 1. OSD Toàn cục (FPS & Frame)
         info_text = f"FPS: {fps:.1f} | Frame: {frame_id}/{total_frames}"
         cv2.putText(
             output, info_text, (20, 40),
             cv2.FONT_HERSHEY_DUPLEX, 0.8, (255, 255, 255), 2
         )
 
-        # 2. Draw ROI (Yellow Outline Only)
+        # 2. Vẽ ROI (Chỉ viền vàng)
         poly = roi.get_polygon(w, h)
         if matrix is not None:
             try:
@@ -64,10 +63,10 @@ class OSDRenderer:
             except cv2.error:
                 pass
 
-        # Pure yellow outline (no fill)
+        # Viền vàng đơn thuần
         cv2.polylines(output, [poly], True, (0, 255, 255), 3)
 
-        # Vehicle type abbreviation map
+        # Viết tắt loại xe
         CLASS_MAP = {
             "motorcycle": "moto",
             "motorbike": "moto",
@@ -78,7 +77,7 @@ class OSDRenderer:
             "bicycle": "bike"
         }
 
-        # 3. Draw Bounding Boxes and Detailed Labels
+        # 3. Vẽ Bounding Box và Nhãn
         for ev in events:
             tid = ev.track_id
             if tid is None: continue
@@ -86,37 +85,37 @@ class OSDRenderer:
             x1, y1, x2, y2 = map(int, [ev.bbox.x1, ev.bbox.y1, ev.bbox.x2, ev.bbox.y2])
             vehicle_type = CLASS_MAP.get(ev.class_label.name.lower(), ev.class_label.name)
 
-            # Default: Outside ROI (Royal Blue)
-            color = (255, 50, 50) # BGR Royal Blue
+            # Mặc định: Ngoài ROI (Xanh biển)
+            color = (255, 50, 50) # BGR
             thickness = 2
             label = f"{tid} | {vehicle_type}"
 
             if tid in states:
                 state = states[tid]
                 if state.is_inside:
-                    # Calculate real-time dwell time (starts when vehicle stops)
+                    # Tính thời gian dừng thực tế
                     dwell = 0.0
                     if state.first_stop_time is not None:
                         dwell = ev.timestamp - state.first_stop_time
 
                     if state.violation_triggered:
-                        # Inside ROI & Violating (Red)
-                        color = (0, 0, 255) # BGR Red
+                        # Trong ROI & Vi phạm (Đỏ)
+                        color = (0, 0, 255) # BGR
                         thickness = 3
                         lp = ocr_results.get(tid, "SEARCHING...")
                         label = f"{tid} | {vehicle_type} | {dwell:.1f}s | {lp}"
                     else:
-                        # Inside ROI & Normal (Green)
-                        color = (0, 255, 0) # BGR Green
+                        # Trong ROI & Bình thường (Xanh lá)
+                        color = (0, 255, 0) # BGR
                         label = f"{tid} | {vehicle_type} | {dwell:.1f}s"
                 else:
-                    # Outside ROI
+                    # Ngoài ROI
                     pass
 
-            # Render Box
+            # Vẽ Box
             cv2.rectangle(output, (x1, y1), (x2, y2), color, thickness)
 
-            # Render Label with Background for readability (Make text bolder: thickness=2)
+            # Vẽ nhãn có nền để dễ đọc
             (tw, th), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
             cv2.rectangle(output, (x1, y1 - th - 10), (x1 + tw, y1), color, -1)
             cv2.putText(

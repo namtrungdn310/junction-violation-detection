@@ -1,12 +1,10 @@
 """
-ocr.py — Asynchronous Multiprocessed License Plate Recognition.
+ocr.py — Nhận diện biển số đa tiến trình bất đồng bộ.
 
 Layer: inference/
 
-This module encapsulates PaddleOCR in a dedicated operating system process
-to prevent CPU contention and VRAM bottlenecking with YOLO26.
-It implements spatial aspect-ratio heuristics to dynamically slice square plates
-and applies strict regex parsing for Vietnamese standard syntax.
+Chạy PaddleOCR trên tiến trình riêng để tránh nghẽn CPU và VRAM với YOLO26.
+Dùng regex lọc chuẩn định dạng biển số Việt Nam.
 """
 
 from __future__ import annotations
@@ -20,16 +18,15 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# Vietnamese LP standard regex:
-# e.g., 43A-12345, 29H1-12345, 92-CA13144
-# Allows optional hyphens between region, series, and digits.
+# Chuẩn biển số VN regex (VD: 43A-12345, 29H1-12345)
+# Cho phép có/không dấu gạch ngang giữa vùng, seri và số.
 _LP_REGEX = re.compile(r"^[0-9]{2}\-?[A-Z]{1,2}[0-9]?\-?[0-9]{4,5}$")
 
 
 class LicensePlateRecognizer:
     """
-    Multiprocess wrapper for PaddleOCR.
-    Uses a Queue to ingest image crops and a Manager.dict to store results.
+    Wrapper đa tiến trình cho PaddleOCR.
+    Dùng Queue nhận ảnh và Manager.dict lưu kết quả.
     """
 
     def __init__(self, shared_dict: dict[int, str]) -> None:
@@ -43,12 +40,12 @@ class LicensePlateRecognizer:
         )
 
     def start(self) -> None:
-        """Start the background OCR process."""
+        """Bắt đầu tiến trình OCR ngầm."""
         self._process.start()
         logger.info("LicensePlateRecognizer process started.")
 
     def stop(self) -> None:
-        """Gracefully terminate the background process."""
+        """Dừng tiến trình ngầm an toàn."""
         self._stop_event.set()
         self._process.join(timeout=5.0)
         if self._process.is_alive():
@@ -57,25 +54,22 @@ class LicensePlateRecognizer:
 
     def enqueue(self, track_id: int, crop: np.ndarray) -> None:
         """
-        Push a vehicle/plate crop into the OCR processing queue.
-        Fails silently if the queue is full to avoid stalling the main pipeline.
+        Đẩy ảnh crop vào queue OCR.
+        Bỏ qua nếu queue đầy để tránh nghẽn pipeline chính.
         """
         try:
             self._queue.put_nowait((track_id, crop))
         except queue.Full:
-            pass  # Drop frame to maintain real-time throughput
+            pass  # Bỏ qua để duy trì FPS thời gian thực
 
     @staticmethod
     def _run(q: mp.Queue, results: dict[int, str], stop_event: mp.Event) -> None:
-        """The entry point for the child process."""
+        """Hàm chạy trong tiến trình con."""
         import os
         os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-        # ── Windows DLL Hell Prevention ───────────────────────────────────────
-        # PaddleOCR internally imports torch AFTER importing paddle. This causes
-        # PyTorch to load its shm.dll using Paddle's older loaded OpenMP DLL,
-        # resulting in WinError 127. By importing torch FIRST, we load the newer
-        # PyTorch OpenMP DLL into memory, which Paddle can safely reuse.
+        # ── Ngăn lỗi DLL Hell trên Windows ────────────────────────────────────
+        # Import torch TRƯỚC paddle để dùng chung OpenMP DLL mới nhất.
         try:
             import torch  # noqa: F401
         except ImportError:
@@ -84,14 +78,14 @@ class LicensePlateRecognizer:
         try:
             from paddleocr import PaddleOCR
         except Exception as exc:  # pragma: no cover
-            logger.error(f"PaddleOCR unavailable. OCR worker disabled: {exc}")
+            logger.error(f"PaddleOCR không khả dụng: {exc}")
             return
 
-        # Force CPU to isolate VRAM for YOLO26.
+        # Ép dùng CPU để dành VRAM cho YOLO26.
         try:
             ocr = PaddleOCR(use_angle_cls=False, lang="en")
         except Exception as exc:  # pragma: no cover
-            logger.error(f"PaddleOCR initialization failed, OCR worker disabled: {exc}")
+            logger.error(f"Khởi tạo PaddleOCR lỗi: {exc}")
             return
 
         while not stop_event.is_set():
@@ -103,32 +97,28 @@ class LicensePlateRecognizer:
             try:
                 text = LicensePlateRecognizer._process_crop(ocr, crop, track_id)
             except Exception as exc:  # pragma: no cover
-                logger.warning(f"OCR inference failed for track {track_id}: {exc}")
+                logger.warning(f"Lỗi OCR track {track_id}: {exc}")
                 continue
             if text is not None:
                 results[track_id] = text
 
     @staticmethod
     def _process_crop(ocr, crop: np.ndarray, track_id: int) -> str | None:
-        """
-        Pre-process the image, apply aspect ratio slicing, and run OCR.
-        """
+        """Tiền xử lý ảnh và chạy OCR."""
         h, w = crop.shape[:2]
         if h == 0 or w == 0:
             return None
 
         w / h
 
-        # Run OCR on the full original color crop
+        # Chạy OCR trên crop màu gốc
         text = LicensePlateRecognizer._read_text(ocr, crop)
 
-        # Regex Syntax Validation
-        # Remove spaces and dots that OCR might wrongly infer
+        # Xóa khoảng trắng/dấu chấm do OCR nhận diện nhầm
         cleaned = text.replace(" ", "").replace(".", "").replace("-", "").upper()
 
-        # Vietnamese plate format: 2 digits (province) + (1 letter + 1 digit OR 1-2 letters) + digits
-        # Example: 43F161888 -> 43F1-61888, 92CA13144 -> 92CA-13144
-        # Logic: Prioritize Letter+Digit series (F1, G1) over 2-letter series (CA, AA). 4-5 digits at end.
+        # Chuẩn VN: 2 số + (1 chữ+1 số HOẶC 1-2 chữ) + 4-5 số
+        # VD: 43F161888 -> 43F1-61888
         match = re.match(r"^([0-9]{2}(?:[A-Z][0-9]|[A-Z]{1,2}))([0-9]{4,5})$", cleaned)
         if match:
             formatted = f"{match.group(1)}-{match.group(2)}"
@@ -138,14 +128,13 @@ class LicensePlateRecognizer:
 
     @staticmethod
     def _read_text(ocr, img: np.ndarray) -> str:
-        """Run PaddleOCR and join text blocks."""
+        """Chạy PaddleOCR và nối các khối text."""
         res = ocr.ocr(img, cls=False)
         if not res or not res[0]:
             return ""
 
         texts = []
         for line in res[0]:
-            # line structure: [[[x,y], [x,y], [x,y], [x,y]], ('text', conf)]
             if line and len(line) == 2 and isinstance(line[1], tuple):
                 texts.append(line[1][0])
 

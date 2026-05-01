@@ -1,11 +1,10 @@
 """
-reporter.py — Evidence Generation and Export.
+reporter.py — Tạo và xuất bằng chứng vi phạm.
 
 Layer: pipeline/
 
-Maintains a rolling ring buffer of OSD-rendered frames.
-Upon violation, records post-event frames and exports a H.264 mp4 video
-along with a standardized JSON legal report and image crops.
+Duy trì buffer xoay vòng các frame OSD. Khi có vi phạm, lưu frame trước/sau 
+sự kiện, xuất video mp4, ảnh cắt và báo cáo JSON chuẩn.
 """
 
 from __future__ import annotations
@@ -22,40 +21,40 @@ logger = logging.getLogger(__name__)
 
 
 class ViolationReporter:
-    """Manages the creation of standalone evidence packages for violations."""
+    """Quản lý việc tạo gói bằng chứng độc lập cho các vi phạm."""
 
     def __init__(self, export_dir: str = "data/exports", fps: int = 30, video_name: str = "unknown") -> None:
         self.root_export_dir = Path(export_dir)
         self.video_name = video_name
         self.session_dir = self.root_export_dir / self.video_name
 
-        # ── Auto-cleanup old evidence for this video ─────────────────────────
+        # ── Tự động dọn dẹp bằng chứng cũ của video này ─────────────────────────
         if self.session_dir.exists():
             import shutil
-            logger.info(f"Clearing old evidence for {self.video_name}...")
+            logger.info(f"Đang xóa bằng chứng cũ cho {self.video_name}...")
             shutil.rmtree(self.session_dir)
 
         self.session_dir.mkdir(parents=True, exist_ok=True)
 
         self.fps = fps
-        self.pre_event_len = fps * 5  # 5 seconds before trigger
-        self.post_event_len = fps * 10 # 10 seconds after trigger
+        self.pre_event_len = fps * 5  # 5 giây trước sự kiện
+        self.post_event_len = fps * 10 # 10 giây sau sự kiện
 
-        # Buffer containing up to 15 seconds of OSD frames
+        # Buffer chứa tối đa 15 giây frame OSD
         self.buffer_len = self.pre_event_len + self.post_event_len
         self._frame_buffer: deque = deque(maxlen=self.buffer_len)
 
-        # Track pending video generation jobs
+        # Theo dõi các tiến trình xuất video đang chờ
         self._pending_exports: dict[int, dict] = {}
 
     def add_frame(self, frame: np.ndarray, ocr_results: dict[int, str] = None) -> None:
-        """Push a newly rendered OSD frame into the ring buffer."""
+        """Đẩy frame OSD mới render vào buffer xoay vòng."""
         self._frame_buffer.append(frame)
 
-        # Process active recording jobs
+        # Xử lý các tác vụ ghi hình đang chạy
         finished_ids = []
         for tid, job in self._pending_exports.items():
-            # Proactively update license plate if it's still PENDING
+            # Chủ động cập nhật biển số nếu vẫn đang PENDING
             if ocr_results and job["lp_text"] == "PENDING":
                 new_lp = ocr_results.get(tid, "PENDING")
                 if new_lp != "PENDING":
@@ -67,7 +66,7 @@ class ViolationReporter:
                 self._export_evidence(tid, job)
                 finished_ids.append(tid)
 
-        # Cleanup finished jobs
+        # Dọn dẹp các tác vụ đã xong
         for tid in finished_ids:
             del self._pending_exports[tid]
 
@@ -80,16 +79,16 @@ class ViolationReporter:
         lp_crop: np.ndarray | None
     ) -> None:
         """
-        Flag a track_id for recording. Grabs historical frames and
-        prepares the job to collect post-event frames.
+        Đánh dấu track_id để ghi hình. Lấy lịch sử frame và 
+        chuẩn bị thu thập frame sau sự kiện.
         """
         if track_id in self._pending_exports:
-            # Update license plate if we finally got a real reading
+            # Cập nhật biển số nếu đã có kết quả thực sự
             if self._pending_exports[track_id]["lp_text"] == "PENDING" and lp_text != "PENDING":
                 self._pending_exports[track_id]["lp_text"] = lp_text
             return
 
-        # Get up to 5 seconds of historical pre-event frames
+        # Lấy tối đa 5 giây frame lịch sử trước sự kiện
         history = list(self._frame_buffer)[-self.pre_event_len:]
 
         self._pending_exports[track_id] = {
@@ -102,8 +101,8 @@ class ViolationReporter:
         }
 
     def _export_evidence(self, track_id: int, job: dict) -> None:
-        """Dump the collected frames to an MP4 and write the JSON manifest in a subfolder."""
-        # Create a dedicated subfolder for this violation
+        """Lưu frame vào file MP4 và viết báo cáo JSON vào thư mục con."""
+        # Tạo thư mục con riêng cho vi phạm này
         violation_dir = self.session_dir / f"violation_{track_id}"
         violation_dir.mkdir(parents=True, exist_ok=True)
 
@@ -113,7 +112,7 @@ class ViolationReporter:
         frames = job["frames"]
         video_path = base_path.with_suffix(".mp4")
 
-        # 1. Export H.264 Video Evidence
+        # 1. Xuất video bằng chứng H.264
         if frames:
             h, w = frames[0].shape[:2]
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -122,7 +121,7 @@ class ViolationReporter:
                 writer.write(f)
             writer.release()
 
-        # 2. Export Static Images
+        # 2. Xuất ảnh tĩnh
         wide_path = violation_dir / "wide_shot.jpg"
         crop_path = violation_dir / "license_plate.jpg"
         if job["wide_shot"] is not None:
@@ -130,8 +129,7 @@ class ViolationReporter:
         if job["lp_crop"] is not None:
             cv2.imwrite(str(crop_path), job["lp_crop"])
 
-        # 3. Export JSON Report
-        # start_time = trigger_time - actual_history_length_in_seconds
+        # 3. Xuất báo cáo JSON
         history_frames_cnt = len(frames) - self.post_event_len
         start_ts = job["timestamp"] - (history_frames_cnt / self.fps)
         end_ts = job["timestamp"] + (self.post_event_len / self.fps)
@@ -153,4 +151,4 @@ class ViolationReporter:
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=4)
 
-        logger.info(f"Evidence package created: {violation_dir}")
+        logger.info(f"Đã tạo gói bằng chứng: {violation_dir}")

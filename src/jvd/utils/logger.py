@@ -1,8 +1,8 @@
 """
-Centralized logging configuration for the JVD system.
+Cấu hình logging tập trung cho hệ thống JVD.
 
-Provides a consistent log format across all modules with
-both console and file output handlers.
+Cung cấp định dạng log chuẩn trên tất cả module
+cho cả terminal (console) và file.
 """
 
 from __future__ import annotations
@@ -25,18 +25,18 @@ def setup_logger(
     log_file: str | None = None,
 ) -> logging.Logger:
     """
-    Create or retrieve a named logger with standardized formatting.
+    Tạo hoặc lấy logger với định dạng chuẩn.
 
-    On the first call, this function also configures the root logger
-    with a console handler and (optionally) a file handler.
+    Ở lần gọi đầu tiên, hàm này cấu hình root logger với 
+    console handler và (tùy chọn) file handler.
 
     Args:
-        name: Logger name (typically ``__name__`` or a module path).
-        level: Minimum log level. Default: INFO.
-        log_file: Optional filename inside ``outputs/logs/``.
+        name: Tên logger (thường là __name__).
+        level: Mức log tối thiểu. Mặc định: INFO.
+        log_file: Tên file log (tùy chọn) lưu trong outputs/logs/.
 
     Returns:
-        A configured ``logging.Logger`` instance.
+        Instance logging.Logger đã được cấu hình.
     """
     global _configured
 
@@ -48,7 +48,7 @@ def setup_logger(
 
 
 def _configure_root(level: int, log_file: str | None) -> None:
-    """Set up the root logger with console + optional file handlers."""
+    """Thiết lập root logger với console + file handler (tùy chọn)."""
     root = logging.getLogger()
     root.setLevel(level)
 
@@ -58,7 +58,7 @@ def _configure_root(level: int, log_file: str | None) -> None:
     console.setFormatter(logging.Formatter(_LOG_FORMAT, _DATE_FORMAT))
     root.addHandler(console)
 
-    # ── File handler (optional) ─────────────────────────────────
+    # ── File handler (tùy chọn) ─────────────────────────────────
     if log_file:
         _LOG_DIR.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(

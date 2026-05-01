@@ -1,10 +1,9 @@
 """
-stabilizer.py — Multi-threaded CPU-only video stabilization worker.
+stabilizer.py — Worker chống rung video trên CPU đa luồng.
 
-Layer: utils/  (imports from core/ and utils/transform)
+Layer: utils/
 
-Architecture
-~~~~~~~~~~~~
+Kiến trúc:
                    ┌─────────────────────────────────────────┐
   Main thread      │  VideoStabilizer                        │
   ──────────────►  │  raw_queue (Queue, cap=60)              │
@@ -19,15 +18,13 @@ Architecture
   Main thread ◄──  │  get_stable_frame()                     │
                    └─────────────────────────────────────────┘
 
-Queue pressure control
-~~~~~~~~~~~~~~~~~~~~~~
-If the *input* queue is full (60 frames), the **oldest** frame is
-discarded before the new one is enqueued, preserving real-time throughput.
+Kiểm soát tràn Queue:
+Nếu queue đầu vào đầy, bỏ frame cũ nhất trước khi thêm frame mới để 
+giữ FPS thời gian thực.
 
-GPU budget
-~~~~~~~~~~
-Zero CUDA calls are made in this module.  All cv2 operations run on CPU,
-preserving the ≤ 2.8 GB VRAM budget for YOLO and PaddleOCR.
+Ngân sách GPU:
+Không dùng CUDA trong module này. Mọi xử lý cv2 chạy trên CPU, 
+giữ VRAM <= 2.8 GB cho YOLO và PaddleOCR.
 """
 
 from __future__ import annotations
@@ -50,15 +47,14 @@ from jvd.utils.transform import (
 logger = logging.getLogger(__name__)
 
 _QUEUE_MAXSIZE   = 60
-_REINIT_INTERVAL = 60     # Every 60 frames, refresh points from anchor
-_MIN_ANCHOR_KPS  = 20     # Minimum keypoints to consider anchor tracking valid
+_REINIT_INTERVAL = 60     # Làm mới điểm neo mỗi 60 frame
+_MIN_ANCHOR_KPS  = 20     # Số điểm neo tối thiểu để theo dõi hợp lệ
 
 
 @dataclass
 class _FrameProcessor:
-    """Stateful per-frame stabilization processor using Anchor Reference.
-    """
-    detector:   str            = "ORB" # Switch back to ORB for speed
+    """Trình xử lý chống rung từng frame dựa trên khung hình gốc (Anchor)."""
+    detector:   str            = "ORB" 
     crop_pct:   float          = 0.05
     _anchor_gray: Frame | None = field(default=None, init=False, repr=False)
     _anchor_pts:  Keypoints | None = field(default=None, init=False, repr=False)
@@ -70,11 +66,10 @@ class _FrameProcessor:
         frame: Frame,
         boxes: list[tuple[int, int, int, int]],
     ) -> np.ndarray:
-        """Estimate transform from Current back to Anchor (Frame 0).
-        """
+        """Tính toán ma trận biến đổi từ frame hiện tại về Anchor (Frame 0)."""
         curr_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Initialize Anchor on the very first frame
+        # Khởi tạo Anchor ở frame đầu tiên
         if self._anchor_gray is None:
             self._anchor_gray = curr_gray
             self._anchor_pts  = extract_keypoints(curr_gray, self.detector, boxes)
@@ -86,9 +81,9 @@ class _FrameProcessor:
 
         M_comp = get_anchor_compensation(self._anchor_gray, curr_gray, self._anchor_pts)
 
-        # Smoothing
+        # Làm mượt (Smoothing)
         if self._last_M is not None:
-            alpha = 0.5  # More smoothing for ROI motion
+            alpha = 0.5  # Làm mượt mạnh cho vùng ROI
             M_comp = alpha * M_comp + (1 - alpha) * self._last_M
             self._last_M = M_comp
 
@@ -96,11 +91,11 @@ class _FrameProcessor:
         return M_comp
 
 
-# ── Public stabilizer ─────────────────────────────────────────────────────────
+# ── Bộ chống rung (Public) ────────────────────────────────────────────────────
 
 class VideoStabilizer:
     """
-    Multi-threaded CPU video stabilizer with queue pressure control.
+    Module chống rung CPU đa luồng với kiểm soát tràn queue.
 
     Usage::
 
@@ -133,10 +128,10 @@ class VideoStabilizer:
             f"MotionEstimator ready: detector={detector}, queue_cap={queue_maxsize}"
         )
 
-    # ── Lifecycle ─────────────────────────────────────────────────────────────
+    # ── Vòng đời ─────────────────────────────────────────────────────────────
 
     def start(self) -> None:
-        """Launch the daemon motion estimation thread."""
+        """Bắt đầu luồng tính toán chuyển động ngầm."""
         if self._thread and self._thread.is_alive():
             return
         self._stop.clear()
@@ -165,7 +160,7 @@ class VideoStabilizer:
         self._raw_q.put_nowait((frame.copy(), vehicle_boxes or []))
 
     def get_latest(self, timeout: float = 0.05) -> tuple[Frame | None, np.ndarray | None]:
-        """Pop next (raw_frame, matrix), or (None, None) on timeout."""
+        """Lấy (raw_frame, matrix) tiếp theo, hoặc (None, None) nếu timeout."""
         try:
             return self._matrix_q.get(timeout=timeout)
         except queue.Empty:

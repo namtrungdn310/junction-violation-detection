@@ -1,9 +1,8 @@
 """
-Data models — Immutable intermediary data structures.
+Các kiểu dữ liệu trung gian bất biến (immutable).
 
-All cross-module data flows through these standardized dataclasses.
-Using frozen=True ensures thread-safety and prevents accidental
-mutation during multi-stage pipeline processing.
+Toàn bộ dữ liệu trao đổi giữa các module đều dùng các dataclass này.
+frozen=True đảm bảo an toàn luồng và tránh thay đổi ngoài ý muốn.
 """
 
 from __future__ import annotations
@@ -13,7 +12,7 @@ from enum import Enum, auto
 
 
 class VehicleClass(Enum):
-    """Enumeration of detectable vehicle types on Vietnamese roads."""
+    """Các loại phương tiện được nhận diện trên đường Việt Nam."""
 
     CAR = auto()
     MOTORBIKE = auto()
@@ -24,15 +23,7 @@ class VehicleClass(Enum):
 
     @classmethod
     def from_label(cls, label: str) -> VehicleClass:
-        """
-        Map a YOLO class label string to a VehicleClass enum.
-
-        Args:
-            label: Raw string label from the detector (case-insensitive).
-
-        Returns:
-            Matching VehicleClass or UNKNOWN if unrecognized.
-        """
+        """Chuyển nhãn chuỗi YOLO sang VehicleClass (không phân biệt hoa/thường)."""
         mapping = {
             "car": cls.CAR,
             "motorbike": cls.MOTORBIKE,
@@ -46,22 +37,15 @@ class VehicleClass(Enum):
     @classmethod
     def from_coco_id(cls, coco_id: int) -> VehicleClass:
         """
-        Map a COCO dataset integer class index to a VehicleClass enum.
+        Chuyển chỉ số lớp COCO sang VehicleClass.
 
-        COCO indices used by this system
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        | ID |  COCO Label  | VehicleClass |
-        |----|--------------|--------------|
-        |  2 | car          | CAR          |
-        |  3 | motorcycle   | MOTORBIKE    |
-        |  5 | bus          | BUS          |
-        |  7 | truck        | TRUCK        |
-
-        Args:
-            coco_id: Integer class index from YOLO / COCO dataset.
-
-        Returns:
-            Matching VehicleClass or UNKNOWN for unmapped IDs.
+        Ánh xạ COCO được dùng:
+        | ID |  Nhãn COCO  | VehicleClass |
+        |----|-------------|--------------|
+        |  2 | car         | CAR          |
+        |  3 | motorcycle  | MOTORBIKE    |
+        |  5 | bus         | BUS          |
+        |  7 | truck       | TRUCK        |
         """
         _COCO_MAP = {2: cls.CAR, 3: cls.MOTORBIKE, 5: cls.BUS, 7: cls.TRUCK}
         return _COCO_MAP.get(coco_id, cls.UNKNOWN)
@@ -70,13 +54,13 @@ class VehicleClass(Enum):
 @dataclass(frozen=True, slots=True)
 class BoundingBox:
     """
-    Axis-aligned bounding box in pixel coordinates.
+    Hộp giới hạn căn chỉnh theo trục (pixel).
 
-    Attributes:
-        x1: Left edge.
-        y1: Top edge.
-        x2: Right edge.
-        y2: Bottom edge.
+    Thuộc tính:
+        x1: Cạnh trái.
+        y1: Cạnh trên.
+        x2: Cạnh phải.
+        y2: Cạnh dưới.
     """
 
     x1: float
@@ -86,43 +70,40 @@ class BoundingBox:
 
     @property
     def width(self) -> float:
-        """Width of the bounding box."""
+        """Chiều rộng của hộp."""
         return self.x2 - self.x1
 
     @property
     def height(self) -> float:
-        """Height of the bounding box."""
+        """Chiều cao của hộp."""
         return self.y2 - self.y1
 
     @property
     def center(self) -> tuple[float, float]:
-        """Center point (cx, cy) of the bounding box."""
+        """Tâm điểm (cx, cy) của hộp."""
         return (self.x1 + self.x2) / 2.0, (self.y1 + self.y2) / 2.0
 
     @property
     def area(self) -> float:
-        """Area of the bounding box in square pixels."""
+        """Diện tích hộp (pixel²)."""
         return max(0.0, self.width) * max(0.0, self.height)
 
 
 @dataclass(frozen=True, slots=True)
 class DetectionEvent:
     """
-    Standardized intermediary data structure for a single detection.
+    Đơn vị dữ liệu chuẩn cho một lần phát hiện phương tiện.
 
-    This is the canonical unit of data that flows between pipeline
-    stages (detector → tracker → violation analyzer → evidence recorder).
+    Là đầu ra chung của các giai đoạn: detector → tracker → analyzer → reporter.
 
-    Attributes:
-        frame_id:    Sequential frame index from the video source.
-        timestamp:   Wall-clock time in seconds since stream start.
-        bbox:        Bounding box of the detected object.
-        track_id:    Unique ID assigned by the object tracker.
-                     None if tracking has not yet been applied.
-        class_label: Detected vehicle class.
-        confidence:  Detection confidence score in [0.0, 1.0].
-        velocity:    Velocity vector (vx, vy) in pixels/frame.
-                     None if optical-flow has not yet been computed.
+    Thuộc tính:
+        frame_id:    Số thứ tự frame trong video.
+        timestamp:   Thời điểm (giây) kể từ đầu video.
+        bbox:        Hộp giới hạn của phương tiện.
+        track_id:    ID theo dõi do ByteTrack gán (None nếu chưa có).
+        class_label: Loại phương tiện.
+        confidence:  Độ tin cậy nhận diện trong khoảng [0.0, 1.0].
+        velocity:    Vector vận tốc (vx, vy) pixel/frame (None nếu chưa tính).
     """
 
     frame_id: int
@@ -134,24 +115,23 @@ class DetectionEvent:
     velocity: tuple[float, float] | None = None
 
     def __post_init__(self) -> None:
-        """Validate field constraints on construction."""
+        """Kiểm tra ràng buộc khi khởi tạo."""
         if self.confidence < 0.0 or self.confidence > 1.0:
             raise ValueError(
-                f"confidence must be in [0.0, 1.0], got {self.confidence}"
+                f"confidence phải trong [0.0, 1.0], nhận được {self.confidence}"
             )
         if self.frame_id < 0:
             raise ValueError(
-                f"frame_id must be non-negative, got {self.frame_id}"
+                f"frame_id phải >= 0, nhận được {self.frame_id}"
             )
 
 
 @dataclass(frozen=True, slots=True)
 class ViolationRecord:
     """
-    A confirmed violation event ready for evidence archival.
+    Một vi phạm đã được xác nhận, sẵn sàng để lưu bằng chứng.
 
-    Created when a vehicle is determined to have stopped on
-    the yellow-box junction markings beyond the threshold duration.
+    Được tạo khi phương tiện dừng trên vạch mắt võng quá thời gian quy định.
     """
 
     event: DetectionEvent

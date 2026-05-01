@@ -1,10 +1,10 @@
 """
-tracker.py — ByteTrack integration and trajectory history management.
+tracker.py — Tích hợp ByteTrack và quản lý lịch sử quỹ đạo.
 
-Layer: inference/  (imports from core/ only)
+Layer: inference/
 
-Provides ``ByteTrackSession`` (stateful YOLO26 + ByteTrack tracking) and
-``VehicleTrackerManager`` (trajectory history, velocity, and stale ID eviction).
+Cung cấp ByteTrackSession (YOLO26 + ByteTrack) và
+VehicleTrackerManager (lưu quỹ đạo, vận tốc, xóa ID cũ).
 """
 
 from __future__ import annotations
@@ -17,42 +17,41 @@ from jvd.core.datamodels import BoundingBox, DetectionEvent, VehicleClass
 
 logger = logging.getLogger(__name__)
 
-# ── Constants ─────────────────────────────────────────────────────────────────
-_COCO_VEHICLE_IDS  = [2, 3, 5, 7]   # car, motorcycle, bus, truck
+# ── Hằng số ───────────────────────────────────────────────────────────────────
+_COCO_VEHICLE_IDS  = [2, 3, 5, 7]   # xe hơi, xe máy, xe buýt, xe tải
 _DEFAULT_CONF      = 0.4
 _DEFAULT_IMGSZ     = 640
-_HISTORY_LEN       = 30             # centre points retained per track
-_MAX_STALE_FRAMES  = 120            # frames before ID eviction (= track_buffer)
-_SMOOTHING_ALPHA   = 0.3            # Lower weight for new box = smoother movement
+_HISTORY_LEN       = 30             # số điểm tâm lưu mỗi xe
+_MAX_STALE_FRAMES  = 120            # số frame trước khi xóa ID
+_SMOOTHING_ALPHA   = 0.3            # Trọng số EWA cho mượt quỹ đạo
 
-# Resolve config path relative to this file's package root
+# Đường dẫn config ByteTrack
 _BYTETRACK_CFG = Path(__file__).parent.parent.parent.parent / "configs" / "custom_bytetrack.yaml"
 
 
 # ── ByteTrack session ─────────────────────────────────────────────────────────
 
 class ByteTrackSession:
-    """Wraps an ``ObjectDetector`` to run YOLO26 + ByteTrack frame-by-frame.
+    """Bọc ObjectDetector để chạy YOLO26 + ByteTrack theo từng frame.
 
-    ``persist=True`` instructs ultralytics to keep a stateful ``BYTETracker``
-    instance across calls so the Kalman filter accumulates velocity estimates.
+    persist=True giữ trạng thái Kalman filter tính vận tốc.
     """
 
     def __init__(
         self,
-        detector,                        # ObjectDetector (avoids circular import)
+        detector,                        # ObjectDetector (tránh circular import)
         tracker_cfg: Path = _BYTETRACK_CFG,
     ) -> None:
         """
         Args:
-            detector:    A loaded ``ObjectDetector`` instance.
-            tracker_cfg: Path to the ByteTrack YAML override config.
+            detector:    Instance ObjectDetector đã load.
+            tracker_cfg: File config YAML của ByteTrack.
         """
         from jvd.core.exceptions import PipelineConfigError
         if not detector.is_ready:
             raise PipelineConfigError(
-                "ByteTrackSession requires a loaded detector. "
-                "Call detector.load() before constructing ByteTrackSession."
+                "ByteTrackSession cần detector đã load. "
+                "Gọi detector.load() trước khi tạo ByteTrackSession."
             )
         self._detector   = detector
         self._cfg        = tracker_cfg
@@ -65,21 +64,16 @@ class ByteTrackSession:
         frame_id: int = 0,
         timestamp: float = 0.0,
     ) -> list[DetectionEvent]:
-        """Run YOLO26 + ByteTrack on one BGR frame with stateful persistence.
-
-        Args:
-            frame: Stabilized BGR numpy frame (H, W, 3).
-            frame_id: Monotonically increasing frame index.
-            timestamp: Wall-clock seconds since stream start.
+        """Chạy YOLO26 + ByteTrack trên 1 frame BGR.
 
         Returns:
-            List of ``DetectionEvent`` objects with ``track_id`` populated.
+            Danh sách DetectionEvent kèm track_id.
         """
         model = self._detector.raw_model
         results = model.track(
             source=frame,
-            persist=True,                        # stateful Kalman across frames
-            tracker=str(self._cfg),              # custom ByteTrack parameters
+            persist=True,                        # giữ trạng thái Kalman
+            tracker=str(self._cfg),              # config ByteTrack
             conf=self._detector.conf,
             classes=_COCO_VEHICLE_IDS,
             imgsz=self._detector.imgsz,
@@ -89,7 +83,7 @@ class ByteTrackSession:
         self._frame_count += 1
         return self._parse(results, frame_id, timestamp)
 
-    # ── Internal parser ───────────────────────────────────────────────────────
+    # ── Parser nội bộ ────────────────────────────────────────────────────────
 
     def _parse(
         self,
@@ -97,18 +91,16 @@ class ByteTrackSession:
         frame_id: int,
         timestamp: float,
     ) -> list[DetectionEvent]:
-        """Extract ``DetectionEvent`` list from raw YOLO tracker results.
+        """Trích xuất DetectionEvent từ kết quả YOLO.
 
-        ByteTrack adds a ``boxes.id`` tensor to results when ``persist=True``.
-        If ``boxes.id`` is None (first frame or no match), ``track_id`` is set
-        to None and the caller may discard or buffer the event.
+        ByteTrack thêm boxes.id. Nếu None là chưa map được track.
         """
         events: list[DetectionEvent] = []
         if not results or results[0].boxes is None:
             return events
 
         boxes = results[0].boxes
-        ids   = boxes.id   # None until ByteTrack associates a track
+        ids   = boxes.id   # None cho đến khi ByteTrack map được
 
         for i in range(len(boxes)):
             try:
@@ -125,19 +117,17 @@ class ByteTrackSession:
                     confidence=conf,
                 ))
             except (IndexError, ValueError) as exc:
-                logger.warning(f"Skipping malformed tracker box [{i}]: {exc}")
+                logger.warning(f"Bỏ qua box lỗi [{i}]: {exc}")
 
         return events
 
 
-# ── Trajectory manager ────────────────────────────────────────────────────────
+# ── Quản lý quỹ đạo ──────────────────────────────────────────────────────────
 
 class VehicleTrackerManager:
-    """Manages per-vehicle spatial trajectory histories for motion analysis.
+    """Quản lý lịch sử tọa độ tâm (cx, cy) để phân tích chuyển động.
 
-    Maintains a rolling deque of ``(cx, cy)`` centre coordinates over the last
-    ``history_len`` frames per track_id. Stale IDs are automatically evicted
-    when not updated for ``max_stale_frames`` consecutive frames.
+    Xóa ID xe nếu không cập nhật quá max_stale_frames.
     """
 
     def __init__(
@@ -147,17 +137,17 @@ class VehicleTrackerManager:
     ) -> None:
         self._history_len      = history_len
         self._max_stale_frames = max_stale_frames
-        # track_id → deque of (cx, cy) centre coordinates
+        # track_id → deque tâm (cx, cy)
         self._histories: dict[int, deque[tuple[float, float]]] = {}
-        # track_id → last frame_id it was seen on
+        # track_id → frame_id cuối cùng nhìn thấy
         self._last_seen: dict[int, int] = {}
-        # track_id → smoothed BoundingBox
+        # track_id → BoundingBox đã làm mượt
         self._last_boxes: dict[int, BoundingBox] = {}
 
-    # ── Update ────────────────────────────────────────────────────────────────
+    # ── Cập nhật ─────────────────────────────────────────────────────────────
 
     def update(self, events: list[DetectionEvent], frame_id: int) -> list[DetectionEvent]:
-        """Ingest tracking events, apply Box Smoothing, and return smoothed events."""
+        """Nhận sự kiện, làm mượt Bounding Box và trả về sự kiện mới."""
         from dataclasses import replace
         smoothed_events: list[DetectionEvent] = []
 
@@ -169,25 +159,24 @@ class VehicleTrackerManager:
             tid = ev.track_id
             current_bbox = ev.bbox
 
-            # 1. Bounding Box Smoothing (EWA)
+            # 1. Làm mượt Box (EWA)
             if tid in self._last_boxes:
                 prev = self._last_boxes[tid]
                 alpha = _SMOOTHING_ALPHA
 
-                # Smooth each coordinate
+                # Làm mượt từng tọa độ
                 smoothed_bbox = BoundingBox(
                     x1 = alpha * current_bbox.x1 + (1 - alpha) * prev.x1,
                     y1 = alpha * current_bbox.y1 + (1 - alpha) * prev.y1,
                     x2 = alpha * current_bbox.x2 + (1 - alpha) * prev.x2,
                     y2 = alpha * current_bbox.y2 + (1 - alpha) * prev.y2
                 )
-                # Create a new event with the smoothed box
                 ev = replace(ev, bbox=smoothed_bbox)
 
             self._last_boxes[tid] = ev.bbox
             smoothed_events.append(ev)
 
-            # 2. History & Persistence
+            # 2. Lưu lịch sử
             if tid not in self._histories:
                 self._histories[tid] = deque(maxlen=self._history_len)
             cx, cy = ev.bbox.center
@@ -196,22 +185,14 @@ class VehicleTrackerManager:
 
         return smoothed_events
 
-    # ── Queries ───────────────────────────────────────────────────────────────
+    # ── Truy vấn ─────────────────────────────────────────────────────────────
 
     def get_history(self, track_id: int) -> list[tuple[float, float]]:
-        """Return the ordered list of (cx, cy) centres for a track.
-
-        The list is ordered oldest-to-newest and has at most
-        ``history_len`` elements.  Returns an empty list for unknown IDs.
-        """
+        """Lấy danh sách tâm (cx, cy) của 1 xe. Cũ -> mới."""
         return list(self._histories.get(track_id, []))
 
     def get_velocity(self, track_id: int) -> tuple[float, float] | None:
-        """Estimate instantaneous velocity (vx, vy) in pixels/frame.
-
-        Returns:
-            (vx, vy) tuple, or None if fewer than 2 history points exist.
-        """
+        """Ước tính vận tốc (vx, vy) pixel/frame."""
         hist = self._histories.get(track_id)
         if hist is None or len(hist) < 2:
             return None
@@ -220,17 +201,10 @@ class VehicleTrackerManager:
         vy = pts[-1][1] - pts[-2][1]
         return (vx, vy)
 
-    # ── Maintenance ───────────────────────────────────────────────────────────
+    # ── Bảo trì ──────────────────────────────────────────────────────────────
 
     def cleanup_stale(self, current_frame_id: int) -> int:
-        """Remove track IDs not updated within ``max_stale_frames``.
-
-        Args:
-            current_frame_id: The current frame index.
-
-        Returns:
-            Number of track IDs evicted.
-        """
+        """Xóa ID xe không xuất hiện quá max_stale_frames."""
         stale = [
             tid for tid, last in self._last_seen.items()
             if (current_frame_id - last) > self._max_stale_frames
@@ -240,15 +214,15 @@ class VehicleTrackerManager:
             self._last_seen.pop(tid, None)
             self._last_boxes.pop(tid, None)
         if stale:
-            logger.debug(f"Evicted {len(stale)} stale track IDs: {stale}")
+            logger.debug(f"Đã xóa {len(stale)} track ID cũ: {stale}")
         return len(stale)
 
     @property
     def active_track_ids(self) -> set[int]:
-        """Set of currently tracked vehicle IDs."""
+        """Danh sách ID xe đang theo dõi."""
         return set(self._histories.keys())
 
     @property
     def track_count(self) -> int:
-        """Number of active track histories in memory."""
+        """Số lượng xe đang lưu quỹ đạo."""
         return len(self._histories)

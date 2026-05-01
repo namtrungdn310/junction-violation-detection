@@ -1,33 +1,18 @@
 """
-analyzer.py — Spatial logic and junction violation reasoning.
+analyzer.py — Xử lý logic không gian và phát hiện vi phạm.
 
-Layer: pipeline/ (imports from core/ and inference/)
+Layer: pipeline/
 
-This module acts as the legal reasoning center of the system.
-It evaluates vehicle spatial behavior and applies traffic rules
-concerning yellow-box junctions.
+Trung tâm xử lý luật giao thông. Đánh giá vị trí xe và áp dụng luật vạch mắt võng.
 
-Core Logic
-~~~~~~~~~~
-1. Point-in-Polygon (Ray Casting):
-   Determines if a vehicle is inside the prohibited yellow box.
-   Uses the bottom-center of the bounding box (ground touch point)
-   to avoid perspective distortion errors. The polygon is defined
-   in normalized coordinates (0.0 - 1.0) for resolution independence.
-
-2. Kinematic Analysis:
-   Checks if the vehicle's velocity has dropped near zero,
-   indicating a stop on the junction.
-
-3. Congestion Reasoning (Forward Collision Check):
-   If stopped, projects a virtual search area "upwards" (smaller y)
-   to find vehicles in front. If a vehicle ahead is also stopped
-   and has significant horizontal overlap (Horizontal IoU), the current
-   vehicle is granted a `BLOCKED_BY_TRAFFIC` exemption.
-
-4. State Machine:
-   Triggers a `VIOLATION` only if a vehicle is completely stopped
-   in the ROI for > 3 seconds without any exemptions.
+Logic cốt lõi:
+1. Point-in-Polygon: Kiểm tra xe trong vùng vàng. Dùng điểm giữa-dưới
+   của bounding box để tránh lỗi phối cảnh.
+2. Phân tích động học: Kiểm tra vận tốc giảm gần 0 -> xe đang dừng.
+3. Xử lý ùn tắc: Nếu dừng, kiểm tra có xe dừng phía trước chặn đường không
+   (thông qua độ giao thoa ngang - Horizontal IoU). Nếu có -> không vi phạm.
+4. State Machine: Chỉ báo vi phạm nếu xe dừng hẳn trong vùng vàng > 3s
+   và không bị cản phía trước.
 """
 
 from __future__ import annotations
@@ -43,26 +28,26 @@ from jvd.inference.tracker import VehicleTrackerManager
 
 logger = logging.getLogger(__name__)
 
-# ── Constants ─────────────────────────────────────────────────────────────────
-_STOP_VELOCITY_THRESH = 2.0      # pixels/frame
-_VIOLATION_TIME_SEC   = 3.0      # seconds
-_BLOCK_DIST_THRESH    = 50.0     # max vertical pixels to consider "blocked"
-_BLOCK_HIOU_THRESH    = 0.3      # min horizontal IoU to consider "blocked"
-_STOP_BUFFER_FRAMES   = 15       # frames to keep "stopped" status during tracking jitter
+# ── Hằng số ───────────────────────────────────────────────────────────────────
+_STOP_VELOCITY_THRESH = 2.0      # pixel/frame (ngưỡng dừng)
+_VIOLATION_TIME_SEC   = 3.0      # số giây dừng để tính vi phạm
+_BLOCK_DIST_THRESH    = 50.0     # pixel dọc tối đa để tính là "bị cản"
+_BLOCK_HIOU_THRESH    = 0.3      # IoU ngang tối thiểu để tính là "bị cản"
+_STOP_BUFFER_FRAMES   = 15       # số frame giữ trạng thái "đang dừng" khi mất dấu
 
 
 class RegionOfInterest:
-    """Resolution-independent polygon manager for the yellow box ROI."""
+    """Quản lý polygon độc lập độ phân giải cho vùng mắt võng."""
 
     def __init__(self, normalized_points: list[tuple[float, float]]) -> None:
         if len(normalized_points) < 3:
-            raise ValueError("ROI requires at least 3 points to form a polygon.")
+            raise ValueError("ROI cần ít nhất 3 điểm.")
         self._norm_pts = normalized_points
         self._scaled_pts: np.ndarray | None = None
         self._cached_dim: tuple[int, int] | None = None
 
     def update_points(self, normalized_points: list[tuple[float, float]]) -> None:
-        """Update ROI points and clear caches."""
+        """Cập nhật điểm ROI và xóa cache."""
         if len(normalized_points) < 3:
             return
         self._norm_pts = normalized_points
@@ -70,7 +55,7 @@ class RegionOfInterest:
         self._scaled_pts = None
 
     def get_polygon(self, width: int, height: int) -> np.ndarray:
-        """Interpolate normalized coordinates to frame pixels."""
+        """Nội suy tọa độ chuẩn hóa sang pixel của frame."""
         if self._cached_dim == (width, height) and self._scaled_pts is not None:
             return self._scaled_pts
 
@@ -80,25 +65,24 @@ class RegionOfInterest:
         return self._scaled_pts
 
     def contains(self, pt: tuple[float, float], width: int, height: int) -> bool:
-        """Ray-casting point-in-polygon test using cv2."""
+        """Kiểm tra điểm nằm trong đa giác."""
         poly = self.get_polygon(width, height)
-        # measureDist=False returns +1 inside, 0 on edge, -1 outside
         return cv2.pointPolygonTest(poly, pt, measureDist=False) >= 0
 
 
 @dataclass
 class TrackState:
-    """State machine context for a single vehicle."""
+    """Trạng thái của một xe."""
     first_stop_time: float | None = None
     is_blocked: bool = False
     violation_triggered: bool = False
-    is_inside: bool = False  # NEW: Spatial membership flag
+    is_inside: bool = False  # Nằm trong ROI
     stop_buffer: int = 0
     last_seen_frame: int = 0
 
 
 class ViolationAnalyzer:
-    """Evaluates spatial constraints and kinematic interactions."""
+    """Đánh giá không gian và va chạm động học."""
 
     def __init__(self, roi_normalized: list[tuple[float, float]]) -> None:
         self.roi = RegionOfInterest(roi_normalized)
@@ -112,7 +96,7 @@ class ViolationAnalyzer:
         return mag < _STOP_VELOCITY_THRESH
 
     def _horizontal_iou(self, box1: BoundingBox, box2: BoundingBox) -> float:
-        """Compute 1D intersection over union along the X axis."""
+        """Tính Intersection over Union (IoU) theo trục X."""
         inter_x1 = max(box1.x1, box2.x1)
         inter_x2 = min(box1.x2, box2.x2)
         inter_w = max(0.0, inter_x2 - inter_x1)
@@ -130,35 +114,24 @@ class ViolationAnalyzer:
         emergency_ids: set[int] | None = None,
         matrix: np.ndarray | None = None,
     ) -> list[ViolationRecord]:
-        """
-        Process current frame events to find junction violations.
-
-        Args:
-            events: List of tracked DetectionEvent for the current frame.
-            tracker: The VehicleTrackerManager containing velocity history.
-            frame_width: Pixel width of the frame.
-            frame_height: Pixel height of the frame.
-            emergency_ids: Set of track_ids permanently exempted.
-            matrix: 2x3 transformation matrix (Current -> Anchor).
-        """
+        """Xử lý sự kiện frame hiện tại để tìm vi phạm."""
         violations: list[ViolationRecord] = []
         current_stopped_events: list[DetectionEvent] = []
         active_ids: set[int] = set()
         emergency_ids = emergency_ids or set()
 
-        # 1. Filter events & Kinematic Analysis
+        # 1. Lọc sự kiện & Động học
         for ev in events:
             if ev.track_id is None or ev.track_id in emergency_ids:
                 continue
 
             active_ids.add(ev.track_id)
 
-            # Ground touch point
+            # Điểm chạm đất
             px, py = ev.bbox.center[0], ev.bbox.y2
 
-            # If camera moved, transform the point back to anchor coordinate system
+            # Dịch tọa độ nếu camera rung lắc
             if matrix is not None:
-                # Point transformation: p' = M * [x, y, 1]^T
                 pt = np.array([px, py, 1.0], dtype=np.float32)
                 transformed_pt = matrix @ pt
                 px, py = transformed_pt[0], transformed_pt[1]
@@ -169,22 +142,21 @@ class ViolationAnalyzer:
             state = self.states[ev.track_id]
             state.last_seen_frame = ev.frame_id
 
-            # Use a strict margin (2px) for entry to avoid premature triggers at edges.
-            # Use a larger margin (30px) for vehicles already in violation to prevent flicker.
+            # Biên mỏng (2px) khi mới vào, biên dày (30px) khi đã vi phạm để chống nhiễu
             margin = 30 if state.violation_triggered else 2
             is_inside = self.roi.contains((px, py), frame_width, frame_height)
 
             if not is_inside:
-                # Check with margin (simple box approximation for speed)
+                # Kiểm tra với biên
                 poly = self.roi.get_polygon(frame_width, frame_height)
                 dist = cv2.pointPolygonTest(poly, (px, py), measureDist=True)
-                if dist >= -margin: # Negative distance means outside
+                if dist >= -margin: 
                     is_inside = True
 
             state.is_inside = is_inside
 
             if not is_inside:
-                # If they truly leave, we can keep the state for a bit but reset timers
+                # Vừa rời đi, reset thời gian
                 state.first_stop_time = None
                 state.is_blocked = False
                 continue
@@ -196,7 +168,7 @@ class ViolationAnalyzer:
                 if state.first_stop_time is None:
                     state.first_stop_time = ev.timestamp
             else:
-                # Use buffer to smooth out temporary movement or tracking jitter
+                # Dùng buffer làm mượt khi xe nhích nhẹ
                 if state.stop_buffer > 0:
                     state.stop_buffer -= 1
                     current_stopped_events.append(ev)
@@ -204,7 +176,7 @@ class ViolationAnalyzer:
                     state.first_stop_time = None
                     state.is_blocked = False
 
-        # 2. Congestion Reasoning (Forward Collision Check)
+        # 2. Xử lý ùn tắc (Có xe chắn phía trước)
         for ev in current_stopped_events:
             tid = ev.track_id
             state = self.states[tid]
@@ -224,7 +196,7 @@ class ViolationAnalyzer:
 
             state.is_blocked = is_blocked
 
-            # 3. State Machine & Violation Generation
+            # 3. Kích hoạt vi phạm
             if state.violation_triggered:
                 pass
             elif not is_blocked and state.first_stop_time is not None:
@@ -237,15 +209,14 @@ class ViolationAnalyzer:
                         violation_type="yellow_box_stop"
                     ))
                     logger.info(
-                        f"Violation confirmed! Track ID: {tid}, Dwell: {dwell_time:.1f}s"
+                        f"Phát hiện vi phạm! Track ID: {tid}, Dừng: {dwell_time:.1f}s"
                     )
 
-        # 4. Clean up stale tracked vehicles from memory (Defer deletion)
-        # We wait _MAX_STALE_FRAMES before deleting to handle detection hiccups
+        # 4. Xóa xe cũ khỏi bộ nhớ (giữ lại 1 thời gian để chống nhiễu)
         current_frame = events[0].frame_id if events else 0
         stale_keys = [
             tid for tid, s in self.states.items()
-            if (current_frame - s.last_seen_frame) > 120 # 4 seconds grace period
+            if (current_frame - s.last_seen_frame) > 120 # 4 giây
         ]
         for tid in stale_keys:
             del self.states[tid]

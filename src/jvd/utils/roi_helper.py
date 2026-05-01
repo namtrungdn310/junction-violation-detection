@@ -12,21 +12,21 @@ def get_config_path():
 
 
 def _normalize_key(video_path: str) -> str:
-    """Convert video path to a portable relative key (e.g. 'data/videos/video_test1.mp4').
+    """Chuyển đường dẫn video thành key tương đối (VD: 'data/videos/video.mp4').
 
-    Uses forward slashes for cross-platform consistency.
-    Falls back to filename only if the path is outside the project tree.
+    Dùng dấu gạch chéo xuôi '/' để tương thích đa nền tảng.
+    Lấy tên file nếu đường dẫn nằm ngoài thư mục dự án.
     """
     try:
         rel = Path(video_path).resolve().relative_to(Path.cwd().resolve())
         return rel.as_posix()
     except ValueError:
-        # video_path is outside the project → use filename as key
+        # video_path nằm ngoài dự án -> dùng tên file làm key
         return Path(video_path).name
 
 
 def load_roi_config(video_path: str):
-    """Load ROI points for a specific video from config file."""
+    """Load tọa độ ROI của video từ file config."""
     config_path = get_config_path()
     if not config_path.exists():
         return None
@@ -39,7 +39,7 @@ def load_roi_config(video_path: str):
 
 
 def save_roi_config(video_path: str, points: list):
-    """Save ROI points for a specific video to config file (overwrites old entry)."""
+    """Lưu tọa độ ROI vào config (ghi đè nếu đã có)."""
     config_path = get_config_path()
     data = {}
     if config_path.exists():
@@ -55,7 +55,7 @@ def save_roi_config(video_path: str, points: list):
 
 
 def select_roi_points(video_path: str, current_frame: np.ndarray = None):
-    """Interactively select ROI polygon points."""
+    """Mở cửa sổ tương tác vẽ đa giác ROI."""
     if current_frame is None:
         cap = cv2.VideoCapture(video_path)
         ok, frame = cap.read()

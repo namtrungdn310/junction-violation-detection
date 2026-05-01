@@ -1,14 +1,14 @@
 """
-DeviceManager — Singleton controller for hardware resource allocation.
+DeviceManager — Singleton quản lý tài nguyên phần cứng GPU/CPU.
 
-This module enforces strict GPU/VRAM discipline for edge deployment
-scenarios where VRAM is critically limited (e.g., RTX A500 with < 3 GB).
+Kiểm soát nghiêm ngặt VRAM cho môi trường triển khai thiếu tài nguyên
+(ví dụ RTX A500 với < 3 GB khả dụng).
 
-Design decisions:
-    1. Singleton pattern ensures ONE device context across all modules.
-    2. GPU request with no CUDA → raises HardwareConstraintError (no silent fallback).
-    3. VRAM is hard-capped via torch.cuda.set_per_process_memory_fraction
-       to prevent OOM crashes that would kill the entire pipeline.
+Thiết kế:
+    1. Singleton đảm bảo toàn bộ hệ thống dùng chung một context thiết bị.
+    2. Yêu cầu GPU mà không có CUDA → raise HardwareConstraintError (không fallback thầm lặng).
+    3. VRAM bị giới hạn cứng qua torch.cuda.set_per_process_memory_fraction
+       để tránh OOM crash làm chết toàn bộ pipeline.
 """
 
 from __future__ import annotations
@@ -25,9 +25,9 @@ logger = logging.getLogger(__name__)
 
 class DeviceManager:
     """
-    Thread-safe Singleton that owns the torch.device lifecycle.
+    Singleton thread-safe quản lý vòng đời torch.device.
 
-    Usage::
+    Ví dụ sử dụng::
 
         dm = DeviceManager.get_instance()
         dm.initialize(device_flag="gpu", vram_limit_gb=2.8)
@@ -38,23 +38,23 @@ class DeviceManager:
     _lock: threading.Lock = threading.Lock()
     _initialized: bool = False
 
-    # ── Singleton access ────────────────────────────────────────────
+    # ── Truy cập Singleton ──────────────────────────────────────────
 
     def __new__(cls) -> DeviceManager:
-        """Guarantee a single instance across the entire process."""
+        """Đảm bảo chỉ tạo một instance duy nhất trong toàn process."""
         if cls._instance is None:
             with cls._lock:
-                # Double-checked locking for thread safety
+                # Double-checked locking để an toàn luồng
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
         return cls._instance
 
     @classmethod
     def get_instance(cls) -> DeviceManager:
-        """Return the singleton instance (create if needed)."""
+        """Trả về instance singleton (tạo mới nếu chưa có)."""
         return cls()
 
-    # ── Initialization ──────────────────────────────────────────────
+    # ── Khởi tạo ────────────────────────────────────────────────────
 
     def initialize(
         self,
@@ -62,20 +62,19 @@ class DeviceManager:
         vram_limit_gb: float = 2.8,
     ) -> None:
         """
-        Configure the device context exactly once.
+        Cấu hình thiết bị một lần duy nhất.
 
         Args:
-            device_flag: ``"gpu"`` or ``"cpu"`` from the ``--device`` CLI flag.
-            vram_limit_gb: Maximum VRAM allocation in gigabytes.
-                           Default 2.8 GB leaves ~200 MB headroom for OS
-                           background tasks on a 3 GB card.
+            device_flag:   ``"gpu"`` hoặc ``"cpu"`` từ tham số ``--device``.
+            vram_limit_gb: Giới hạn VRAM tối đa (GB). Mặc định 2.8 GB để
+                           dành ~200 MB cho hệ thống trên card 3 GB.
 
         Raises:
-            HardwareConstraintError: If GPU is requested but CUDA is unavailable,
-                                     or if the requested VRAM exceeds physical capacity.
+            HardwareConstraintError: Nếu yêu cầu GPU nhưng CUDA không khả dụng,
+                                     hoặc VRAM yêu cầu vượt dung lượng thực.
         """
         if self._initialized:
-            logger.warning("DeviceManager already initialized — skipping.")
+            logger.warning("DeviceManager đã được khởi tạo — bỏ qua.")
             return
 
         device_flag = device_flag.strip().lower()
@@ -87,78 +86,73 @@ class DeviceManager:
             self._log_gpu_info()
         elif device_flag == "cpu":
             self._device = torch.device("cpu")
-            logger.info("Device configured: CPU (no VRAM constraint applied)")
+            logger.info("Thiết bị: CPU (không áp dụng giới hạn VRAM)")
         else:
             raise HardwareConstraintError(
-                f"Unrecognized device flag '{device_flag}'. "
-                f"Expected 'gpu' or 'cpu'."
+                f"Tham số device không hợp lệ '{device_flag}'. "
+                f"Chỉ chấp nhận 'gpu' hoặc 'cpu'."
             )
 
         self._initialized = True
         logger.info(f"DeviceManager initialized → {self._device}")
 
-    # ── Public properties ───────────────────────────────────────────
+    # ── Thuộc tính công khai ─────────────────────────────────────────
 
     @property
     def device(self) -> torch.device:
-        """Return the active torch device."""
+        """Trả về thiết bị torch đang hoạt động."""
         if not self._initialized:
             raise HardwareConstraintError(
-                "DeviceManager has not been initialized. "
-                "Call initialize() before accessing .device"
+                "DeviceManager chưa được khởi tạo. "
+                "Gọi initialize() trước khi dùng .device"
             )
         return self._device
 
     @property
     def is_gpu(self) -> bool:
-        """Return True if the active device is a CUDA GPU."""
+        """Trả về True nếu đang chạy trên GPU CUDA."""
         return self._initialized and self._device.type == "cuda"
 
-    # ── Private helpers ─────────────────────────────────────────────
+    # ── Hàm nội bộ ──────────────────────────────────────────────────
 
     @staticmethod
     def _ensure_gpu_available() -> None:
         """
-        Verify CUDA hardware is physically present.
+        Kiểm tra GPU CUDA có tồn tại không.
 
         Raises:
-            HardwareConstraintError: Immediately halts the process
-                if torch.cuda.is_available() returns False.
-                We deliberately do NOT fall back to CPU.
+            HardwareConstraintError: Nếu torch.cuda.is_available() = False.
+                Hệ thống KHÔNG tự động chuyển sang CPU.
         """
         if not torch.cuda.is_available():
             raise HardwareConstraintError(
-                "GPU was explicitly requested via --device gpu, "
-                "but torch.cuda.is_available() returned False. "
-                "Possible causes:\n"
-                "  1. No NVIDIA GPU detected on this machine.\n"
-                "  2. CUDA drivers are not installed or incompatible.\n"
-                "  3. PyTorch was installed without CUDA support.\n"
-                "System will NOT silently fall back to CPU. "
-                "Fix the hardware configuration or use --device cpu."
+                "Yêu cầu GPU (--device gpu) nhưng torch.cuda.is_available() = False.\n"
+                "Nguyên nhân có thể:\n"
+                "  1. Không có GPU NVIDIA trên máy.\n"
+                "  2. Driver CUDA chưa cài hoặc không tương thích.\n"
+                "  3. PyTorch được cài không hỗ trợ CUDA.\n"
+                "Hãy sửa lỗi phần cứng hoặc dùng --device cpu."
             )
 
     def _apply_vram_constraint(self, limit_gb: float) -> None:
         """
-        Hard-cap the per-process VRAM allocation.
+        Giới hạn cứng VRAM được cấp phát cho process này.
 
-        The fraction is computed as ``limit_gb / total_vram_gb``,
-        clamped to [0.1, 0.95] for safety.
+        Tỉ lệ = limit_gb / total_vram_gb, được kẹp trong [0.1, 0.95].
 
         Args:
-            limit_gb: Desired maximum VRAM in gigabytes.
+            limit_gb: Giới hạn VRAM mong muốn (GB).
 
         Raises:
-            HardwareConstraintError: If the requested limit exceeds
-                the total physical VRAM of the GPU.
+            HardwareConstraintError: Nếu limit_gb vượt dung lượng GPU thực.
         """
         total_vram_bytes = torch.cuda.get_device_properties(0).total_memory
         total_vram_gb = total_vram_bytes / (1024 ** 3)
 
         if limit_gb > total_vram_gb:
             raise HardwareConstraintError(
-                f"Requested VRAM limit ({limit_gb:.2f} GB) exceeds "
-                f"total GPU memory ({total_vram_gb:.2f} GB)."
+                f"Giới hạn VRAM yêu cầu ({limit_gb:.2f} GB) vượt "
+                f"dung lượng GPU thực ({total_vram_gb:.2f} GB)."
             )
 
         fraction = self._compute_fraction(limit_gb, total_vram_gb)
@@ -172,20 +166,20 @@ class DeviceManager:
     @staticmethod
     def _compute_fraction(limit_gb: float, total_gb: float) -> float:
         """
-        Compute the memory fraction, clamped to safe bounds.
+        Tính tỉ lệ bộ nhớ, được kẹp trong [0.10, 0.95].
 
         Args:
-            limit_gb: Desired VRAM cap.
-            total_gb: Total physical VRAM.
+            limit_gb: Giới hạn mong muốn.
+            total_gb: Tổng VRAM thực.
 
         Returns:
-            A float in [0.10, 0.95].
+            Số thực trong [0.10, 0.95].
         """
         raw = limit_gb / total_gb
         return max(0.10, min(0.95, raw))
 
     def _log_gpu_info(self) -> None:
-        """Log diagnostic information about the detected GPU."""
+        """Ghi thông tin chẩn đoán GPU vào log."""
         props = torch.cuda.get_device_properties(0)
         total_gb = props.total_memory / (1024 ** 3)
         torch.cuda.memory_reserved(0) / (1024 ** 3)
@@ -196,11 +190,11 @@ class DeviceManager:
             f"CUDA Capability: {props.major}.{props.minor}"
         )
 
-    # ── Teardown (for testing) ──────────────────────────────────────
+    # ── Reset (chỉ dùng khi test) ────────────────────────────────────
 
     @classmethod
     def _reset(cls) -> None:
-        """Reset the singleton state. For unit tests ONLY."""
+        """Reset trạng thái singleton. CHỈ dùng trong unit test."""
         with cls._lock:
             cls._instance = None
             cls._initialized = False

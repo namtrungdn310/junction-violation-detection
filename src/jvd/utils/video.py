@@ -1,7 +1,7 @@
 """
-Video I/O utilities: stream capture, frame iteration, and video writing.
+Tiện ích I/O video: đọc stream, lặp frame, ghi video.
 
-Stub module — implementation will be added in Phase 2.
+Module tạm — sẽ cài đặt chi tiết ở Phase 2.
 """
 
 from __future__ import annotations

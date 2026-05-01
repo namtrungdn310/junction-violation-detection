@@ -1,10 +1,10 @@
 """
-detector.py — YOLO26 object detector with TensorRT / ONNX runtime routing.
+detector.py — Nhận diện đối tượng bằng YOLO26 hỗ trợ TensorRT / ONNX.
 
-Layer: inference/  (imports from core/ and inference/compiler)
+Layer: inference/
 
-Loads TensorRT .engine by default, fallback to compile .pt -> .engine,
-then fallback to ONNX. Maintains VRAM cache with periodic flushes.
+Load TensorRT .engine mặc định, nếu không có sẽ tự build từ .pt,
+nếu lỗi sẽ fallback về ONNX. Tự động giải phóng VRAM định kỳ.
 """
 
 from __future__ import annotations
@@ -28,18 +28,18 @@ from jvd.inference.compiler import (
 
 logger = logging.getLogger(__name__)
 
-# ── Model Config ──────────────────────────────────────────────────────────────
-_IMGSZ             = 1024        # High resolution for distant or side-by-side objects
-_CONF_THRESH       = 0.35        # Higher to avoid ghost boxes
-_IOU_THRESH        = 0.3         # Strict NMS to prevent double boxes
-_COCO_VEHICLE_IDS  = [2, 3, 5, 7]        # car, motorcycle, bus, truck
-_CACHE_FLUSH_INTERVAL = 10_000           # frames between empty_cache() calls
+# ── Cấu hình Model ────────────────────────────────────────────────────────────
+_IMGSZ             = 1024        # Độ phân giải cao cho vật thể xa
+_CONF_THRESH       = 0.35        # Ngưỡng tự tin cao để tránh nhiễu
+_IOU_THRESH        = 0.3         # NMS chặt để tránh hộp trùng lặp
+_COCO_VEHICLE_IDS  = [2, 3, 5, 7]        # xe hơi, xe máy, xe buýt, xe tải
+_CACHE_FLUSH_INTERVAL = 10_000           # Tần suất dọn VRAM (số frame)
 
 
 class ObjectDetector:
-    """YOLO26 inference engine with automatic TensorRT → ONNX fallback.
+    """Engine suy luận YOLO26 với tự động fallback TensorRT → ONNX.
 
-    Usage::
+    Cách dùng::
         detector = ObjectDetector("models/yolo26n.pt", device=dm.device)
         detector.load()
         events = detector.predict(frame, frame_id=42, timestamp=1.5)
@@ -60,14 +60,14 @@ class ObjectDetector:
         self._format     = InferenceFormat.PYTORCH
         self._frame_count: int = 0
 
-    # ── Model loading ─────────────────────────────────────────────────────────
+    # ── Load model ────────────────────────────────────────────────────────────
 
     def load(self) -> None:
-        """Load the inference model using the best available backend.
+        """Load model sử dụng backend tốt nhất có thể.
 
-        Cascade: TRT .engine -> Compile TRT -> ONNX -> PipelineConfigError
+        Ưu tiên: TRT .engine -> Compile TRT -> ONNX -> PipelineConfigError
         """
-        # ── Attempt 1 & 2: TensorRT (GPU-only) ──────────────────────────────
+        # ── Cách 1 & 2: TensorRT (chỉ GPU) ──────────────────────────────
         if self._device.type == "cuda":
             try:
                 engine_path = self._model_path.with_suffix(".engine")
@@ -75,26 +75,26 @@ class ObjectDetector:
                     engine_path = compile_to_tensorrt(
                         self._model_path, self._imgsz, workspace_gb=2
                     )
-                logger.info(f"Loading TensorRT engine: {engine_path}")
+                logger.info(f"Đang load TensorRT engine: {engine_path}")
                 self._model = YOLO(str(engine_path), task="detect")
                 self._format = InferenceFormat.TENSORRT
-                logger.info("Backend: TensorRT (FP16, static alloc)")
+                logger.info("Backend: TensorRT (FP16, cấp phát tĩnh)")
                 return
 
             except Exception as trt_err:
                 logger.warning(
-                    f"TensorRT load/compile failed ({type(trt_err).__name__}: {trt_err}). "
-                    "Attempting ONNX fallback …"
+                    f"Load/compile TensorRT lỗi ({type(trt_err).__name__}: {trt_err}). "
+                    "Đang thử fallback sang ONNX …"
                 )
         else:
-            logger.info("CPU device detected; skipping TensorRT and using ONNX fallback.")
+            logger.info("Phát hiện CPU; bỏ qua TensorRT, dùng ONNX fallback.")
 
-        # ── Attempt 3: PyTorch native (.pt) ──────────────────────────────────────
+        # ── Cách 3: PyTorch gốc (.pt) ───────────────────────────────────────────
         try:
-            logger.info(f"Loading PyTorch model: {self._model_path}")
+            logger.info(f"Đang load PyTorch model: {self._model_path}")
             self._model = YOLO(str(self._model_path), task="detect")
 
-            # Verify CUDA kernel availability with a dummy inference
+            # Kiểm tra CUDA kernel bằng cách chạy thử
             import numpy as np
             dummy = np.zeros((self._imgsz, self._imgsz, 3), dtype=np.uint8)
             self._model.predict(source=dummy, imgsz=self._imgsz, device=self._device, verbose=False)
@@ -103,14 +103,14 @@ class ObjectDetector:
             logger.info(f"Backend: PyTorch ({self._device.type.upper()} FP32)")
             return
         except Exception as pt_err:
-            logger.error(f"PyTorch load failed on {self._device}: {pt_err}")
+            logger.error(f"Load PyTorch lỗi trên {self._device}: {pt_err}")
 
-        # ── No viable backend ─────────────────────────────────────────────────
+        # ── Không có backend phù hợp ───────────────────────────────────────────
         raise PipelineConfigError(
-            f"Cannot load model '{self._model_path}' on device '{self._device}'. "
-            f"If using GPU, ensure PyTorch supports your GPU architecture "
-            f"(run: python -c \"import torch; print(torch.cuda.get_arch_list())\"). "
-            f"Check https://pytorch.org/get-started/locally/ for compatible versions."
+            f"Không thể load model '{self._model_path}' trên thiết bị '{self._device}'. "
+            f"Nếu dùng GPU, đảm bảo PyTorch hỗ trợ kiến trúc GPU của bạn "
+            f"(chạy: python -c \"import torch; print(torch.cuda.get_arch_list())\"). "
+            f"Xem https://pytorch.org/get-started/locally/ để biết phiên bản tương thích."
         )
 
 
@@ -122,48 +122,47 @@ class ObjectDetector:
         frame_id: int = 0,
         timestamp: float = 0.0,
     ) -> list[DetectionEvent]:
-        """Run YOLO26 NMS-Free inference on one BGR frame.
+        """Chạy suy luận YOLO26 NMS-Free trên 1 frame BGR.
 
-        Flushes the CUDA allocator cache every ``_CACHE_FLUSH_INTERVAL`` frames
-        via ``torch.cuda.empty_cache()`` to prevent long-session OOM.
+        Xóa cache CUDA định kỳ để tránh OOM khi chạy lâu.
 
         Returns:
-            List of ``DetectionEvent`` objects (one per detected vehicle).
+            Danh sách đối tượng ``DetectionEvent`` (mỗi xe một đối tượng).
 
         Raises:
-            PipelineConfigError: If ``load()`` was never called.
+            PipelineConfigError: Nếu chưa gọi ``load()``.
         """
         if self._model is None:
             raise PipelineConfigError(
-                "ObjectDetector.predict() called before load(). "
-                "Call detector.load() once during pipeline startup."
+                "Đã gọi ObjectDetector.predict() trước load(). "
+                "Gọi detector.load() 1 lần khi khởi động pipeline."
             )
 
-        # ── Periodic VRAM cache flush ─────────────────────────────────────────
+        # ── Xóa cache VRAM định kỳ ─────────────────────────────────────────────
         self._frame_count += 1
         if self._frame_count % _CACHE_FLUSH_INTERVAL == 0:
             if self._device.type == "cuda":
                 torch.cuda.empty_cache()
                 logger.debug(
                     f"[frame {self._frame_count}] "
-                    "VRAM allocator cache flushed (empty_cache)."
+                    "Đã xóa bộ nhớ đệm VRAM (empty_cache)."
                 )
 
         # ── YOLO26 inference (End-to-End NMS-Free) ────────────────────────────
         results = self._model.predict(
             source=frame,
             conf=self._conf,
-            iou=self._iou,               # Explicitly pass IOU threshold
+            iou=self._iou,               # Ngưỡng IOU rõ ràng
             classes=_COCO_VEHICLE_IDS,
             imgsz=self._imgsz,
             verbose=False,
             device=self._device,
-            agnostic_nms=True,           # Merge boxes regardless of class
+            agnostic_nms=True,           # Gộp hộp không phân biệt class
         )
 
         return self._parse_results(results, frame_id, timestamp)
 
-    # ── Result parsing ────────────────────────────────────────────────────────
+    # ── Xử lý kết quả ────────────────────────────────────────────────────────
 
     def _parse_results(
         self,
@@ -171,10 +170,10 @@ class ObjectDetector:
         frame_id: int,
         timestamp: float,
     ) -> list[DetectionEvent]:
-        """Convert raw YOLO output tensors → ``DetectionEvent`` list.
+        """Chuyển tensor kết quả YOLO → danh sách ``DetectionEvent``.
 
-        YOLO26 is NMS-Free (End-to-End), so no duplicate suppression is needed.
-        Malformed boxes are logged and skipped rather than crashing the pipeline.
+        YOLO26 là NMS-Free nên không cần lọc hộp trùng lặp.
+        Bỏ qua các hộp lỗi thay vì làm sập pipeline.
         """
         events: list[DetectionEvent] = []
         if not results or results[0].boxes is None:
@@ -188,12 +187,12 @@ class ObjectDetector:
                 coco_id  = int(boxes.cls[i])
                 vehicle  = VehicleClass.from_coco_id(coco_id)
 
-                # --- Advanced Filtering: Anti-Human BBox Logic ---
-                # A vertical box (height >> width) is likely a person, not a vehicle.
+                # --- Lọc nâng cao: Loại bỏ người ---
+                # Hộp đứng (cao >> rộng) có thể là người, không phải xe.
                 w_box = x2 - x1
                 h_box = y2 - y1
                 if w_box > 0 and (h_box / w_box) > 2.0:
-                    # Discard if it looks like a standing person
+                    # Bỏ qua nếu giống người đang đứng
                     continue
 
                 event = DetectionEvent(
@@ -205,11 +204,11 @@ class ObjectDetector:
                 )
                 events.append(event)
             except (IndexError, ValueError) as exc:
-                logger.warning(f"Skipping malformed detection box [{i}]: {exc}")
+                logger.warning(f"Bỏ qua hộp lỗi [{i}]: {exc}")
 
         return events
 
-    # ── Diagnostics ───────────────────────────────────────────────────────────
+    # ── Chẩn đoán ───────────────────────────────────────────────────────────
 
     @property
     def backend(self) -> InferenceFormat: return self._format

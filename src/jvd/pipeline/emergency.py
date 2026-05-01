@@ -1,11 +1,10 @@
 """
-emergency.py — Optical heuristic detection for emergency vehicles.
+emergency.py — Phát hiện xe ưu tiên bằng quang học.
 
 Layer: pipeline/
 
-Uses CPU-based computer vision (HSV thresholding, CLAHE, and peak detection)
-to analyze the top 25% of vehicle bounding boxes for alternating Red/Blue
-flashing beacon lights at standard frequencies (1Hz - 4Hz).
+Dùng CV trên CPU (HSV, CLAHE, tìm đỉnh) để phân tích 25% trên cùng 
+của bounding box, tìm đèn nháy Xanh/Đỏ tần số chuẩn (1Hz - 4Hz).
 """
 
 from __future__ import annotations
@@ -20,13 +19,13 @@ from jvd.core.datamodels import DetectionEvent
 
 logger = logging.getLogger(__name__)
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── Hằng số ───────────────────────────────────────────────────────────────────
 _HISTORY_LEN = 60
 _MIN_HZ      = 1.0
 _MAX_HZ      = 4.0
-_NOISE_FLOOR = 10     # Minimum pixel count to be considered a valid flash peak
+_NOISE_FLOOR = 10     # Pixel tối thiểu để tính là 1 lần nháy sáng
 
-# HSV Color Ranges
+# Dải màu HSV
 _RED_LOWER1  = np.array([0, 120, 70], dtype=np.uint8)
 _RED_UPPER1  = np.array([10, 255, 255], dtype=np.uint8)
 _RED_LOWER2  = np.array([170, 120, 70], dtype=np.uint8)
@@ -38,25 +37,25 @@ _BLUE_UPPER  = np.array([140, 255, 255], dtype=np.uint8)
 
 class EmergencyVehicleDetector:
     """
-    Stateless-like detector that buffers optical signals to identify emergency
-    vehicles based on beacon flash frequencies.
+    Lưu buffer tín hiệu quang học để xác định xe ưu tiên 
+    dựa trên tần số nháy đèn.
     """
 
     def __init__(self, fps: float = 30.0, history_len: int = _HISTORY_LEN) -> None:
         self.fps = fps
         self.history_len = history_len
 
-        # Track active pixel counts over time: track_id -> (red_deque, blue_deque)
+        # track_id -> (red_deque, blue_deque)
         self._signals: dict[int, tuple[deque[int], deque[int]]] = {}
 
-        # Permanently store IDs of confirmed emergency vehicles
+        # Lưu vĩnh viễn ID các xe ưu tiên đã xác nhận
         self.confirmed_emergencies: set[int] = set()
 
-        # CLAHE instance for enhancing the Value (V) channel
+        # CLAHE để tăng cường độ sáng (kênh V)
         self._clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
     def _extract_beacon_roi(self, frame: np.ndarray, bbox) -> np.ndarray | None:
-        """Extract the top 25% of the bounding box."""
+        """Cắt lấy 25% trên cùng của hộp giới hạn."""
         h_frame, w_frame = frame.shape[:2]
 
         x1 = max(0, int(bbox.x1))
@@ -68,25 +67,25 @@ class EmergencyVehicleDetector:
         if box_h <= 4 or (x2 - x1) <= 4:
             return None
 
-        # Top 25%
+        # 25% trên cùng
         roi_y2 = y1 + max(1, int(box_h * 0.25))
         return frame[y1:roi_y2, x1:x2]
 
     def _count_active_pixels(self, roi: np.ndarray) -> tuple[int, int]:
-        """Convert to HSV, apply CLAHE, and threshold for Red/Blue pixels."""
+        """Chuyển HSV, dùng CLAHE, đếm pixel Đỏ/Xanh."""
         hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
 
-        # Apply CLAHE on the V channel
+        # Áp dụng CLAHE lên kênh V
         h, s, v = cv2.split(hsv)
         v_eq = self._clahe.apply(v)
         hsv_eq = cv2.merge([h, s, v_eq])
 
-        # Red masks
+        # Mask Đỏ
         mask_red1 = cv2.inRange(hsv_eq, _RED_LOWER1, _RED_UPPER1)
         mask_red2 = cv2.inRange(hsv_eq, _RED_LOWER2, _RED_UPPER2)
         mask_red = cv2.bitwise_or(mask_red1, mask_red2)
 
-        # Blue mask
+        # Mask Xanh
         mask_blue = cv2.inRange(hsv_eq, _BLUE_LOWER, _BLUE_UPPER)
 
         red_count = cv2.countNonZero(mask_red)
@@ -95,10 +94,10 @@ class EmergencyVehicleDetector:
 
     def _detect_frequency(self, signal: deque[int]) -> float:
         """
-        Peak Detection algorithm for a square wave signal.
-        Finds local maxima crossing the mean to calculate flash frequency (Hz).
+        Thuật toán tìm đỉnh sóng vuông.
+        Đếm số lần vượt qua giá trị trung bình để tính tần số (Hz).
         """
-        if len(signal) < self.fps: # Require at least ~1 sec of data
+        if len(signal) < self.fps: # Cần ít nhất 1 giây dữ liệu
             return 0.0
 
         arr = np.array(signal)
@@ -108,10 +107,9 @@ class EmergencyVehicleDetector:
         mean_val = np.mean(arr)
         peaks = 0
 
-        # Detect upward zero-crossings around the mean
+        # Tìm các điểm cắt lên (vượt qua mean)
         for i in range(1, len(arr)):
             if arr[i-1] <= mean_val and arr[i] > mean_val:
-                # Validate it's a prominent peak
                 if arr[i] > _NOISE_FLOOR:
                     peaks += 1
 
@@ -120,8 +118,8 @@ class EmergencyVehicleDetector:
 
     def process(self, frame: np.ndarray, events: list[DetectionEvent]) -> set[int]:
         """
-        Analyze current frame events and update the optical signal buffers.
-        Returns the set of active track_ids confirmed as emergency vehicles.
+        Phân tích frame hiện tại và cập nhật tín hiệu.
+        Trả về set các track_id là xe ưu tiên.
         """
         active_ids = set()
 
@@ -132,7 +130,7 @@ class EmergencyVehicleDetector:
             tid = ev.track_id
             active_ids.add(tid)
 
-            # Skip heavy processing if already confirmed
+            # Bỏ qua nếu đã xác nhận là xe ưu tiên
             if tid in self.confirmed_emergencies:
                 continue
 
@@ -152,21 +150,21 @@ class EmergencyVehicleDetector:
             red_deq.append(red_px)
             blue_deq.append(blue_px)
 
-            # Analyze frequencies
+            # Phân tích tần số
             red_hz = self._detect_frequency(red_deq)
             blue_hz = self._detect_frequency(blue_deq)
 
-            # If either color flashes at the standard emergency frequencies
+            # Nếu Đỏ hoặc Xanh nháy đúng dải tần số
             if (_MIN_HZ <= red_hz <= _MAX_HZ) or (_MIN_HZ <= blue_hz <= _MAX_HZ):
                 self.confirmed_emergencies.add(tid)
                 logger.info(
-                    f"Emergency vehicle detected! Track ID: {tid} "
-                    f"(Red Hz: {red_hz:.1f}, Blue Hz: {blue_hz:.1f})"
+                    f"Phát hiện xe ưu tiên! Track ID: {tid} "
+                    f"(Đỏ: {red_hz:.1f}Hz, Xanh: {blue_hz:.1f}Hz)"
                 )
-                # Cleanup memory as we don't need to analyze this ID anymore
+                # Đã xác nhận xong, xóa dữ liệu để nhẹ RAM
                 del self._signals[tid]
 
-        # Cleanup stale signals for disappeared tracks
+        # Xóa dữ liệu các xe đã biến mất
         stale_ids = [tid for tid in self._signals if tid not in active_ids]
         for tid in stale_ids:
             del self._signals[tid]

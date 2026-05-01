@@ -889,3 +889,17 @@ AssertionError: input size torch.Size([1, 3, 1024, 1024]) not equal to max model
 2026-05-01 17:50:57,729 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_2
 2026-05-01 17:51:05,177 - jvd.pipeline.engine - INFO - Cleaning up resources...
 2026-05-01 17:51:06,040 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-05-01 18:38:44,373 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 4.00 GB (fraction=0.7001)
+2026-05-01 18:38:44,374 - jvd.core.device - INFO - GPU: NVIDIA RTX A500 Laptop GPU | Total VRAM: 4.00 GB | CUDA Capability: 8.6
+2026-05-01 18:38:44,374 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-05-01 18:38:44,376 - jvd.inference.detector - INFO - Đang load TensorRT engine: models\yolo26n.engine
+2026-05-01 18:38:44,380 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, cấp phát tĩnh)
+2026-05-01 18:38:44,380 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-05-01 18:38:44,599 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-05-01 18:38:44,601 - jvd.pipeline.reporter - INFO - Đang xóa bằng chứng cũ cho video_test1...
+2026-05-01 18:38:44,608 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-05-01 18:38:44,609 - jvd.pipeline.engine - INFO - Bắt đầu xử lý data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-05-01 18:38:51,045 - jvd.pipeline.analyzer - INFO - Phát hiện vi phạm! Track ID: 1, Dừng: 3.0s
+2026-05-01 18:39:14,968 - jvd.pipeline.reporter - INFO - Đã tạo gói bằng chứng: data\exports\video_test1\violation_1
+2026-05-01 18:39:20,920 - jvd.pipeline.engine - INFO - Giải phóng tài nguyên...
+2026-05-01 18:39:21,906 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
