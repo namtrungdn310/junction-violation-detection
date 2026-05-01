@@ -57,12 +57,13 @@ def main():
     )
     parser.add_argument("--export-dir", type=str, default="data/exports", help="Directory to save evidence")
     parser.add_argument("--no-display", action="store_true", help="Disable OSD display window")
+    parser.add_argument("--reset-roi", action="store_true", help="Redraw ROI region (discard saved config for this video)")
 
     args = parser.parse_args()
 
-    # 1. Try to load ROI from config
+    # 1. Try to load ROI from config (skip if --reset-roi)
     roi_points = None
-    if not args.no_display:
+    if not args.no_display and not args.reset_roi:
         roi_points = load_roi_config(args.video)
         if roi_points:
             print(f"Loaded existing ROI config for {args.video}")

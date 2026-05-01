@@ -28,7 +28,7 @@ uv sync
 Sau khi `uv sync` xong, chạy lệnh sau để export model YOLO sang TensorRT engine phù hợp với GPU của bạn:
 
 ```bash
-uv run yolo export model=models/yolo26n.pt format=engine half=True
+uv run yolo export model=models/yolo26n.pt format=engine half=True imgsz=1024
 ```
 
 - Quá trình build mất khoảng **3–5 phút** tuỳ GPU.
@@ -43,8 +43,18 @@ Khởi chạy hệ thống phân tích video:
 uv run run_pipeline.py --video "data/videos/video_test1.mp4"
 ```
 
+**Lần chạy đầu tiên**, hệ thống sẽ mở cửa sổ để bạn **vẽ vùng ROI** (vùng mắt võng) trên khung hình đầu tiên:
+- **Click trái**: Đặt điểm polygon
+- **Click phải**: Xoá điểm cuối
+- **`r`**: Reset toàn bộ điểm
+- **`c`**: Xác nhận (≥ 3 điểm)
+- **`q`**: Huỷ bỏ
+
+Toạ độ ROI sẽ được lưu vào `configs/roi_configs.json`. Các lần chạy tiếp theo với cùng video sẽ **tự động tải lại** ROI đã lưu mà không cần vẽ lại.
+
 **Các tham số chính:**
 - `--device cpu`: Ép chạy bằng CPU (nếu không có GPU NVIDIA).
+- `--reset-roi`: Vẽ lại vùng ROI (xoá toạ độ cũ, thay bằng toạ độ mới).
 - `--export-dir`: Thư mục lưu bằng chứng (Mặc định: `data/exports`).
 
 *Lưu ý: Bấm phím **`q`** trên cửa sổ video để dừng an toàn và kết xuất hồ sơ.*

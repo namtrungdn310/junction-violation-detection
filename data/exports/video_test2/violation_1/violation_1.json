@@ -6,7 +6,7 @@
     "license_plate": "92CA-13144",
     "ocr_confidence": 0.99,
     "violation_type": "Hatched_Marking_Stop",
-    "wide_image_path": "E:\\NCKH\\junction-violation-detection\\data\\exports\\video_test2\\violation_1\\wide_shot.jpg",
-    "crop_image_path": "E:\\NCKH\\junction-violation-detection\\data\\exports\\video_test2\\violation_1\\license_plate.jpg",
-    "video_evidence_path": "E:\\NCKH\\junction-violation-detection\\data\\exports\\video_test2\\violation_1\\violation_1.mp4"
+    "wide_image_path": "D:\\DUT\\NCKH\\junction-violation-detection\\data\\exports\\video_test2\\violation_1\\wide_shot.jpg",
+    "crop_image_path": "D:\\DUT\\NCKH\\junction-violation-detection\\data\\exports\\video_test2\\violation_1\\license_plate.jpg",
+    "video_evidence_path": "D:\\DUT\\NCKH\\junction-violation-detection\\data\\exports\\video_test2\\violation_1\\violation_1.mp4"
 }

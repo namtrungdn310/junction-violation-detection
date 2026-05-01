@@ -10,6 +10,21 @@ def get_config_path():
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
+
+def _normalize_key(video_path: str) -> str:
+    """Convert video path to a portable relative key (e.g. 'data/videos/video_test1.mp4').
+
+    Uses forward slashes for cross-platform consistency.
+    Falls back to filename only if the path is outside the project tree.
+    """
+    try:
+        rel = Path(video_path).resolve().relative_to(Path.cwd().resolve())
+        return rel.as_posix()
+    except ValueError:
+        # video_path is outside the project → use filename as key
+        return Path(video_path).name
+
+
 def load_roi_config(video_path: str):
     """Load ROI points for a specific video from config file."""
     config_path = get_config_path()
@@ -18,24 +33,26 @@ def load_roi_config(video_path: str):
     try:
         with open(config_path) as f:
             data = json.load(f)
-            return data.get(str(Path(video_path).absolute()))
-    except:
+            return data.get(_normalize_key(video_path))
+    except Exception:
         return None
 
+
 def save_roi_config(video_path: str, points: list):
-    """Save ROI points for a specific video to config file."""
+    """Save ROI points for a specific video to config file (overwrites old entry)."""
     config_path = get_config_path()
     data = {}
     if config_path.exists():
         try:
             with open(config_path) as f:
                 data = json.load(f)
-        except:
+        except Exception:
             pass
 
-    data[str(Path(video_path).absolute())] = points
+    data[_normalize_key(video_path)] = points
     with open(config_path, "w") as f:
         json.dump(data, f, indent=4)
+
 
 def select_roi_points(video_path: str, current_frame: np.ndarray = None):
     """Interactively select ROI polygon points."""

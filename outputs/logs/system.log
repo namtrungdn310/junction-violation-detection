@@ -820,3 +820,72 @@ Traceback (most recent call last):
 AttributeError: 'NoneType' object has no attribute 'create_execution_context'
 2026-05-01 17:30:43,794 - jvd.pipeline.engine - INFO - Cleaning up resources...
 2026-05-01 17:30:48,814 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-05-01 17:41:35,218 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 4.00 GB (fraction=0.7001)
+2026-05-01 17:41:35,219 - jvd.core.device - INFO - GPU: NVIDIA RTX A500 Laptop GPU | Total VRAM: 4.00 GB | CUDA Capability: 8.6
+2026-05-01 17:41:35,219 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-05-01 17:41:35,219 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-05-01 17:41:35,222 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-05-01 17:41:35,222 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-05-01 17:41:35,411 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-05-01 17:41:35,414 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-05-01 17:41:35,420 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-05-01 17:41:35,420 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-05-01 17:41:36,142 - jvd.pipeline.engine - ERROR - Pipeline crashed: input size torch.Size([1, 3, 1024, 1024]) not equal to max model size (1, 3, 640, 640)
+Traceback (most recent call last):
+  File "D:\DUT\NCKH\junction-violation-detection\src\jvd\pipeline\engine.py", line 145, in run
+    events = self.tracker_session.track(frame, frame_id, timestamp)
+  File "D:\DUT\NCKH\junction-violation-detection\src\jvd\inference\tracker.py", line 79, in track
+    results = model.track(
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 580, in track
+    return self.predict(source=source, stream=stream, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 537, in predict
+    return self.predictor.predict_cli(source=source) if is_cli else self.predictor(source=source, stream=stream)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 226, in __call__
+    return list(self.stream_inference(source, model, *args, **kwargs))  # merge list of Results into one
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\utils\_contextlib.py", line 40, in generator_context
+    response = gen.send(None)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 335, in stream_inference
+    preds = self.inference(im, *args, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 183, in inference
+    return self.model(im, augment=self.args.augment, visualize=visualize, embed=self.args.embed, *args, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\nn\modules\module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\autobackend.py", line 273, in forward
+    y = self.backend.forward(im, **forward_kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\tensorrt.py", line 140, in forward
+    assert im.shape == s, f"input size {im.shape} {'>' if self.dynamic else 'not equal to'} max model size {s}"
+AssertionError: input size torch.Size([1, 3, 1024, 1024]) not equal to max model size (1, 3, 640, 640)
+2026-05-01 17:41:36,158 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-05-01 17:41:41,189 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-05-01 17:49:14,810 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 4.00 GB (fraction=0.7001)
+2026-05-01 17:49:14,811 - jvd.core.device - INFO - GPU: NVIDIA RTX A500 Laptop GPU | Total VRAM: 4.00 GB | CUDA Capability: 8.6
+2026-05-01 17:49:14,811 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-05-01 17:49:14,811 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-05-01 17:49:14,815 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-05-01 17:49:14,815 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-05-01 17:49:15,011 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-05-01 17:49:15,015 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-05-01 17:49:15,020 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-05-01 17:49:15,020 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-05-01 17:49:21,380 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-05-01 17:49:45,328 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test1\violation_1
+2026-05-01 17:49:51,261 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-05-01 17:49:51,969 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-05-01 17:50:27,082 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 4.00 GB (fraction=0.7001)
+2026-05-01 17:50:27,083 - jvd.core.device - INFO - GPU: NVIDIA RTX A500 Laptop GPU | Total VRAM: 4.00 GB | CUDA Capability: 8.6
+2026-05-01 17:50:27,083 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-05-01 17:50:27,083 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-05-01 17:50:27,088 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-05-01 17:50:27,088 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-05-01 17:50:27,293 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-05-01 17:50:27,302 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test2...
+2026-05-01 17:50:27,309 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-05-01 17:50:27,311 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test2.mp4 (720x1280 @ 30.0fps)
+2026-05-01 17:50:33,066 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 1, Dwell: 3.0s
+2026-05-01 17:50:33,066 - jvd.pipeline.analyzer - INFO - Violation confirmed! Track ID: 2, Dwell: 3.0s
+2026-05-01 17:50:56,260 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_1
+2026-05-01 17:50:57,729 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_2
+2026-05-01 17:51:05,177 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-05-01 17:51:06,040 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
