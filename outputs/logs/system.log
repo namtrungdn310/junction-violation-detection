@@ -750,3 +750,73 @@ PythonDispatcher: registered at C:\actions-runner\_work\pytorch\pytorch\pytorch\
 2026-04-28 02:16:32,908 - jvd.pipeline.reporter - INFO - Evidence package created: data\exports\video_test2\violation_2
 2026-04-28 02:16:38,674 - jvd.pipeline.engine - INFO - Cleaning up resources...
 2026-04-28 02:16:39,150 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-05-01 17:21:47,725 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 4.00 GB (fraction=0.7001)
+2026-05-01 17:21:47,726 - jvd.core.device - INFO - GPU: NVIDIA RTX A500 Laptop GPU | Total VRAM: 4.00 GB | CUDA Capability: 8.6
+2026-05-01 17:21:47,728 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-05-01 17:21:47,728 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-05-01 17:21:47,889 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-05-01 17:21:47,890 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-05-01 17:21:48,433 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-05-01 17:21:48,440 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-05-01 17:21:48,463 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-05-01 17:21:48,466 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-05-01 17:21:59,926 - jvd.pipeline.engine - ERROR - Pipeline crashed: 'NoneType' object has no attribute 'create_execution_context'
+Traceback (most recent call last):
+  File "D:\DUT\NCKH\junction-violation-detection\src\jvd\pipeline\engine.py", line 145, in run
+    events = self.tracker_session.track(frame, frame_id, timestamp)
+  File "D:\DUT\NCKH\junction-violation-detection\src\jvd\inference\tracker.py", line 79, in track
+    results = model.track(
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 580, in track
+    return self.predict(source=source, stream=stream, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 530, in predict
+    self.predictor.setup_model(model=self.model, verbose=is_cli)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 400, in setup_model
+    self.model = AutoBackend(
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\autobackend.py", line 214, in __init__
+    self.backend = self._BACKEND_MAP[format](model, **backend_kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\base.py", line 54, in __init__
+    self.load_model(weight)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\tensorrt.py", line 69, in load_model
+    raise e
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\tensorrt.py", line 66, in load_model
+    self.context = engine.create_execution_context()
+AttributeError: 'NoneType' object has no attribute 'create_execution_context'
+2026-05-01 17:21:59,928 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-05-01 17:22:04,955 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.
+2026-05-01 17:30:37,503 - jvd.core.device - INFO - VRAM constraint applied: 2.80 GB / 4.00 GB (fraction=0.7001)
+2026-05-01 17:30:37,504 - jvd.core.device - INFO - GPU: NVIDIA RTX A500 Laptop GPU | Total VRAM: 4.00 GB | CUDA Capability: 8.6
+2026-05-01 17:30:37,504 - jvd.core.device - INFO - DeviceManager initialized → cuda:0
+2026-05-01 17:30:37,504 - jvd.inference.detector - INFO - Loading TensorRT engine: models\yolo26n.engine
+2026-05-01 17:30:37,506 - jvd.inference.detector - INFO - Backend: TensorRT (FP16, static alloc)
+2026-05-01 17:30:37,506 - jvd.inference.tracker - INFO - ByteTrackSession ready (cfg=custom_bytetrack.yaml)
+2026-05-01 17:30:37,711 - jvd.utils.stabilizer - INFO - MotionEstimator ready: detector=ORB, queue_cap=60
+2026-05-01 17:30:37,719 - jvd.pipeline.reporter - INFO - Clearing old evidence for video_test1...
+2026-05-01 17:30:37,724 - jvd.inference.ocr - INFO - LicensePlateRecognizer process started.
+2026-05-01 17:30:37,725 - jvd.pipeline.engine - INFO - Starting pipeline on data/videos/video_test1.mp4 (720x1280 @ 30.0fps)
+2026-05-01 17:30:43,748 - jvd.pipeline.engine - ERROR - Pipeline crashed: 'NoneType' object has no attribute 'create_execution_context'
+Traceback (most recent call last):
+  File "D:\DUT\NCKH\junction-violation-detection\src\jvd\pipeline\engine.py", line 145, in run
+    events = self.tracker_session.track(frame, frame_id, timestamp)
+  File "D:\DUT\NCKH\junction-violation-detection\src\jvd\inference\tracker.py", line 79, in track
+    results = model.track(
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 580, in track
+    return self.predict(source=source, stream=stream, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\model.py", line 530, in predict
+    self.predictor.setup_model(model=self.model, verbose=is_cli)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\engine\predictor.py", line 400, in setup_model
+    self.model = AutoBackend(
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\torch\utils\_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\autobackend.py", line 214, in __init__
+    self.backend = self._BACKEND_MAP[format](model, **backend_kwargs)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\base.py", line 54, in __init__
+    self.load_model(weight)
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\tensorrt.py", line 69, in load_model
+    raise e
+  File "D:\DUT\NCKH\junction-violation-detection\.venv\lib\site-packages\ultralytics\nn\backends\tensorrt.py", line 66, in load_model
+    self.context = engine.create_execution_context()
+AttributeError: 'NoneType' object has no attribute 'create_execution_context'
+2026-05-01 17:30:43,794 - jvd.pipeline.engine - INFO - Cleaning up resources...
+2026-05-01 17:30:48,814 - jvd.inference.ocr - INFO - LicensePlateRecognizer process stopped.

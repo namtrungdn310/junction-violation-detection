@@ -21,6 +21,20 @@ Yêu cầu: `Python >= 3.10` và thư viện quản lý gói `uv`.
 uv sync
 ```
 
+## Build TensorRT Engine (Bắt Buộc)
+
+> ⚠️ File `.engine` **không được đưa lên Git** vì TensorRT engine chỉ tương thích với GPU đã build nó. Mỗi máy cần tự build engine riêng.
+
+Sau khi `uv sync` xong, chạy lệnh sau để export model YOLO sang TensorRT engine phù hợp với GPU của bạn:
+
+```bash
+uv run yolo export model=models/yolo26n.pt format=engine half=True
+```
+
+- Quá trình build mất khoảng **3–5 phút** tuỳ GPU.
+- File `models/yolo26n.engine` sẽ được tạo tự động.
+- Nếu không có GPU NVIDIA, bỏ qua bước này và chạy pipeline với `--device cpu`.
+
 ## Hướng Dẫn Sử Dụng
 
 Khởi chạy hệ thống phân tích video:
